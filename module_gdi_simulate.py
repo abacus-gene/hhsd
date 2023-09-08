@@ -6,12 +6,9 @@ import re
 import copy
 import subprocess
 import os
-import warnings
+from typing import Literal, Dict, List
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=SyntaxWarning)
-    from ete3 import Tree
-
+from module_ete3 import Tree, TreeNode
 from module_helper import readlines
 from module_helper import dict_merge
 from module_bpp import bppcfile_write
@@ -33,7 +30,7 @@ that population and its sister node.
 def gdi_genetree(
         node_name:      str,           
         tau_AB:         float,
-        genetree_lines: list[str]
+        genetree_lines: List[str]
         ) ->            float:
 
     '''
@@ -67,8 +64,8 @@ def gdi_genetree(
 
 # wrapper function for getting adapting the simulation gdi function to the tree datastructure
 def get_gdi_simulation(
-        node, 
-        genetree_lines: list[str]
+        node:           TreeNode, 
+        genetree_lines: List[str]
         ) ->            float:
 
     node_name = node.name

@@ -1,13 +1,12 @@
 '''
 THIS MODULE CONTAINS FUNCTIONS RELATED TO MANIPULATING TREE DATA STRUCTURES
 '''
-import warnings
-import copy
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=SyntaxWarning)
-    from ete3 import Tree
 
+import copy
+
+from module_ete3 import Tree
 from module_helper import flatten
+
 
 # small wrapper function that returns an ete3 tree in a newick formatted string
 def tree_to_newick  (

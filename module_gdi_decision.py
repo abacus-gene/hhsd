@@ -2,15 +2,11 @@
 THIS MODULE CONTAINS FUNCTIONS THAT RELATE TO THE EVALUATION OF AND IMPLEMENTATION OF 
 PROPOSED CHANGES TO THE SPECIES DELIMITAITON
 '''
+from typing import Literal, Dict, List
 
 import pandas as pd
-import warnings
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=SyntaxWarning)
-    from ete3 import Tree
-
-from module_viz import visualize_decision, visualize_imap
+from module_ete3 import Tree, TreeNode
 from module_tree import get_node_pairs_to_modify
 from module_tree import get_attribute_filtered_tree
 from module_tree import get_current_leaf_species
@@ -24,7 +20,11 @@ from module_gdi_simulate import get_gdi_simulation
 
 
 # calculate the gdi values for the node pairs to be modified, based on the results from the A00 analysis
-def get_gdi_values(tree, mode, migration_df):
+def get_gdi_values(
+        tree:           Tree, 
+        mode:           Literal['merge','split'],
+        migration_df:   pd.DataFrame
+        ) ->            Dict[str, float]:
 
     # get the mode pairs for which the gdi needs to be calculated
     node_pairs_to_mod = get_node_pairs_to_modify(tree, mode)
@@ -57,10 +57,10 @@ def get_gdi_values(tree, mode, migration_df):
 
 # final wrapper function implementing the simulation, inference, and writing of gdi values
 def calculate_gdi(
-        tree: Tree, 
-        mode, 
-        migration_df
-        ) -> Tree: 
+        tree:           Tree, 
+        mode:           Literal['merge','split'],
+        migration_df:   pd.DataFrame
+        ) ->            Tree: 
 
     gdi_values = get_gdi_values(tree, mode, migration_df)
 
@@ -73,10 +73,10 @@ def calculate_gdi(
 
 # DECIDE WHETER TO ACCEPT OR REJECT PROPOSAL
 def node_pair_decision(
-        node_1,
-        node_2,
-        cf_dict
-        ):
+        node_1:     TreeNode,
+        node_2:     TreeNode,
+        cf_dict:    dict
+        ) ->        None: # in-place modification of node attributes
 
     mode = cf_dict['mode']
     GDI_threshold = cf_dict['GDI_threshold']
@@ -103,9 +103,9 @@ def node_pair_decision(
 # print feedback about each of the node pairs where modifications where proposed        
 def print_decision_feedback(
         node_pairs_to_modify,
-        tree,
-        cf_dict
-        ):
+        tree:                   Tree,
+        cf_dict:                dict
+        ) ->                    None: # prints to screen, and writes files
 
 
     # function to collect parameters about the node pair relevant to the decision
@@ -141,9 +141,9 @@ def print_decision_feedback(
 
 ## FINAL WRAPPER FUNCTION
 def tree_modify(
-        tree,
-        cf_dict
-        ):     
+        tree:       Tree,
+        cf_dict:    dict,
+        ) ->        Tree:     
 
     '''
     Modify the tree datastructure holding the species delimitation accoring to the inferred gdi parameters, 
@@ -159,8 +159,9 @@ def tree_modify(
     
     print_decision_feedback(node_pairs_to_modify, tree, cf_dict)
 
-    # create visualisations
-    visualize_imap(tree,     f"iteration_{get_iteration(tree)}_imap.pdf")
-    visualize_decision(tree, f"iteration_{get_iteration(tree)}_decision.pdf")
+    # output the current imap, and current tree as a newick
+    '''
+    --- todo --- 
+    '''
 
     return tree

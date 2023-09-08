@@ -5,18 +5,14 @@ RELEVANT TO THE HM ALGORITHM
 '''
 
 import copy
-import warnings
+
 import sys
 import re
 from pathlib import Path
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=SyntaxWarning)
-    from ete3 import Tree
-
+from module_ete3 import Tree
 from module_helper import check_file_exists
 from module_helper import check_folder
-#from module_helper import check_numeric
 from module_msa_imap import alignfile_to_MSA
 from module_msa_imap import imapfile_read
 from module_msa_imap import count_seq_per_pop
@@ -105,7 +101,16 @@ def check_newick(
         except:
             sys.exit("cfile error: 'guide_tree' could not be processed. Check formatting.")
     
+    
+    node_names = [node.name for node in t.traverse("postorder") if node.name != ""]
 
+    # check for less than 2 nodes
+    if len(node_names) < 2:
+        sys.exit("Error: 'guide_tree' must have at least two nodes")
+
+    # check for repeated node names
+    if len(node_names) > len(set(node_names)):
+        sys.exit("Error: 'guide_tree' has repeated node names")
 
     # check for conflicts arising from overlaps between leaf and node names
     t = name_internal_nodes(t)
@@ -113,16 +118,12 @@ def check_newick(
     if len(node_names) > len(set(node_names)):
         sys.exit("Error: 'guide_tree' internal node names overlap with leaf node names")
 
-    # check if the tree contrins polytomies, and return a special error if so
-    t_2 = copy.deepcopy(t)
-    t_2.resolve_polytomy(recursive=True)
-
-    if node_names != [node.name for node in t_2.traverse("postorder")]:
-        sys.exit("cfile error: 'guide_tree' contains polytomies")
+    # check if the tree is binary, and return a special error if not
+    for node in t.traverse():
+        if len(node.get_children()) not in [0, 2]:
+            sys.exit("Error: 'guide_tree' is not binary")
 
     return True
-
-
 
 
 ## DATASET COMPATIBILITY CHECKING
