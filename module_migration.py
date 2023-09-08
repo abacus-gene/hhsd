@@ -46,7 +46,8 @@ def read_specified_mig_pattern(
         # read text into dataframe as it were a csv, with the separator '->'
         buf = io.StringIO(lines_text)
         df = pd.read_csv(buf, sep = "->", header=None, engine='python')
-        df = df.applymap(lambda x: stripall(x))
+        for col in df.columns:
+            df[col] = df[col].map(stripall)
         df = df.rename({0: 'source', 1: 'destination'}, axis=1)
 
     except:

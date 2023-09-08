@@ -76,7 +76,8 @@ def read_cf_to_df(
         
         # rename columns, convert every cell to text, and remove trailing and leading whitespaces
         df.rename(columns={0: "par", 1: "value"}, inplace=True)
-        df = df.applymap(lambda x: stripall(x))
+        for col in df.columns:
+            df[col] = df[col].map(stripall)
     except:
         sys.exit("Error: could not parse control file\nCheck formatting and refer to manual.")
     
