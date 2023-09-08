@@ -11,16 +11,18 @@ setup(
     packages=find_packages(),
 
     install_requires=[
-        'distinctipy',
-        'ete3',
-        'numpy',
-        'scipy',
-        'Bio',
-        'pandas',
-        'pyqt5',
-        'lxml',
-        'six',
+        'distinctipy>=1.2.1',
+        'ete3>=3.1.2',
+        'numpy>=1.20',
+        'scipy>=1.10.1',
+        'Bio>=1.5',
+        'pandas>=1.5',
+        'pyqt5>=5.15.9',
+        'lxml>=4.9.2',
+        'six>=1.16',
         ],
+
+    python_requires = '>=3.9,<4',
 
     entry_points={
         'console_scripts': [
