@@ -2,7 +2,8 @@
 `hhsd` can be used to perform Hierarchical Heuristic Species Delimitation from multilocus genetic data.
 ## Installation instructions
 ### Prerequisites
-Users must install BPP 4.6+ before installing `hhsd`. check your currently installed version with the `bpp` commmand, and follow the instructions at https://github.com/bpp/bpp if this requirement is not met. 
+- Users must install BPP 4.6+ before installing `hhsd`. check your currently installed version with the `bpp` commmand, and follow the instructions at https://github.com/bpp/bpp if this requirement is not met.
+- Users must have python 3.9+ installed. Check your current version with `python --version`. 
 ### - Linux 
 Installation on linux can be accomplshed via the following set of commands:
 ```
@@ -11,7 +12,7 @@ cd hhsd
 pip install .
 ```
 ### - macOS
-Installation on macOS is also relatively straightforward. Make sure that you are using the pip version specific to python3, and that python 3.9+ is installed.
+Installation on macOS is also relatively straightforward. Make sure that you are using the pip version specific to python3.
 ```
 git clone https://github.com/abacus-gene/hhsd
 cd hhsd
