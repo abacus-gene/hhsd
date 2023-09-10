@@ -45,6 +45,13 @@ def check_msa_file(
     except:
         sys.exit(f"cfile error: 'seqfile' {seqfile} is not a valid phylip MSA")
 
+    # check that all sequence ids are formatted correctly
+    for curr_locus in align:
+        curr_id_list = [seq.id for seq in curr_locus]
+        for id in curr_id_list:
+            if not bool(re.fullmatch(r"^\S+\^\S+$|^\^\S+$", id)):
+                sys.exit(f"Error: sequence names in 'seqfile' '{seqfile}' do not follow requred naming conventions. \nSequence names should be in the format seq_id^individual_id or ^individual_id.")
+
     final_seqfile = Path(seqfile).resolve(strict=True)
 
     if str(final_seqfile) != seqfile:

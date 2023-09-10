@@ -37,7 +37,7 @@ default_BPP_cfile_dict = {
     'burnin':               None, 
     'sampfreq':             '1', 
     'nsample':              None, 
-    'threads':              '1 ',
+    'threads':              None,
     'migprior':             None,
 }
 
