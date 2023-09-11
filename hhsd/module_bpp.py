@@ -226,16 +226,17 @@ def get_node_number_map(
     '''
     map dict takes the form 1A:A or 9ABCD:ABCD
     '''
-    map_dict = {f'{int(line.split()[0])+1}{line.split()[3]}':line.split()[3] for line in lines} 
+    map_dict_long = {f'{int(line.split()[0])+1}{line.split()[3]}':f'{line.split()[3]}' for line in lines} 
+    map_dict_numeric = {f'{int(line.split()[0])+1}':f'{line.split()[3]}' for line in lines} 
 
-    return map_dict
+    return map_dict_long, map_dict_numeric
 
 # extract the mean and 95% hpds for all parameters from the outfile
 def extract_param_estimate_from_outfile(
         BPP_outfile,
         ) -> dict:
 
-    map_dict = get_node_number_map(BPP_outfile)
+    map_dict_long, map_dict_numeric = get_node_number_map(BPP_outfile)
 
     # read the line listing the mean of all paramater estimates, and turn this into a dict
     outlines = readlines(BPP_outfile)
@@ -266,7 +267,8 @@ def extract_param_estimate_from_outfile(
         param_types.append(param_type)
 
         # get the node(s) the parameter is inferred for (get statement is used to return unaltered results for M parameters)
-        param_node = map_dict.get(full_param_name[1], full_param_name[1])
+        param_node = map_dict_long.get(full_param_name[1], full_param_name[1])
+        param_node = map_dict_numeric.get(param_node, param_node)
         param_nodes.append(param_node)
         
         # get the mean

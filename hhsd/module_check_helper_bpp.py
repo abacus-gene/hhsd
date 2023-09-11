@@ -108,7 +108,7 @@ def check_threads_nloci_compat(
     if input_nloci != None:
         if input_threads != None:
             n_threads = int(input_threads.split()[0])
-            if n_threads > input_nloci:
+            if n_threads > int(input_nloci):
                 sys.exit(f"cfile error: more 'threads' requested ({n_threads}) than 'nloci' ({input_nloci}).\ndecrease thread count.")
 
 # check if the locusrate parameter is correctly formatted
