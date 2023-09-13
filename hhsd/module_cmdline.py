@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from pathlib import PurePath
 import sys
-import subprocess
 import multiprocessing
 
 from .module_helper import stripall
@@ -90,7 +89,7 @@ def cmdline_init(
     arguments_dict = categorise_arguments(argument_list[1:])
 
         # load splash text if no arguments are provided
-    if len(arguments_dict) == 0:
+    if len(arguments_dict) == 0 and "--cfile" not in argument_list:
         sys.exit(f"hhsd version 0.9.8\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
 
         # check that the control file is specified
