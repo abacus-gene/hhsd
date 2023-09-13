@@ -9,7 +9,7 @@ from collections import Counter
 
 from .module_helper import read_filter_comments, read_format_curlybrackets, stripall, dict_merge, param_name_match
 from .module_check_helper_cf import check_output_dir, check_msa_file, check_imap_file, check_newick, check_imap_msa_compat, check_imap_tree_compat, check_can_infer_theta, check_mode, check_gdi_threshold, check_migration
-from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_finetune, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_migprior, check_phase
+from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_migprior, check_phase
 
 # dictionary of CF parameters that are currently supported
 cf_param_dict =    {
@@ -30,7 +30,7 @@ cf_param_dict =    {
     "seed"                  :None,
     "thetaprior"            :None,
     "tauprior"              :None,
-    "finetune"              :None,
+    #"finetune"              :None,
     "sampfreq"              :None,
     "nsample"               :None,                   
     "burnin"                :None,
@@ -169,7 +169,7 @@ def cf_parameter_check(
     check_seed(cf['seed'])
     check_tauprior(cf['tauprior'])
     check_thetaprior(cf['thetaprior'])
-    check_finetune(cf['finetune'])
+    #check_finetune(cf['finetune'])
     check_sampfreq(cf['sampfreq'])
     check_nsample(cf['nsample'])
     check_burnin(cf['burnin'])

@@ -27,20 +27,20 @@ def resolve_cf_file(
         cf_filepath = Path(filepath)
         cf_filepath = cf_filepath.resolve(strict=True)
     except:
-        sys.exit(f"Error: file path '{filepath}' of control file could not be resolved.")
+        sys.exit(f"FilePathError: file path '{filepath}' of control file could not be resolved.")
 
     # check the directory where the cf is supposed to be located, and move in if possible
     try: 
         cf_directory = PurePath(cf_filepath).parent
         os.chdir(cf_directory)
     except:
-        sys.exit(f"Error: could not access requested folder of control file located at: '{filepath}'.")
+        sys.exit(f"FilePathError: could not access requested folder of control file located at: '{filepath}'.")
     
     try:
         cf_filename = PurePath(cf_filepath).name
         return cf_filename
     except:
-        sys.exit(f"Error: no control file present at file present at: '{filepath}'")
+        sys.exit(f"MissingControlFileError: no control file present at file present at: '{filepath}'")
 
 
 # used to separate command line arguments into categories
@@ -77,7 +77,7 @@ def interpret_parameter_override(
     try:
         cf_ovveride_dict = {stripall(arg.split("=")[0]):stripall(arg.split("=")[1]) for arg in args_to_override}
     except:
-        sys.exit(f"Error: --cfpor argument '{argument}' used incorrect syntax")
+        sys.exit(f"ParameterOverrideError: --cfpor argument '{argument}' used incorrect syntax")
 
     return cf_ovveride_dict
 
@@ -95,7 +95,7 @@ def cmdline_init(
 
         # check that the control file is specified
     if "--cfile" not in arguments_dict:
-        sys.exit("Error: please specify control file as '--cfile name_of_mastercontrol_file'")
+        sys.exit("MissingControlFileError: please specify control file as '--cfile name_of_control_file'")
     cf_path = arguments_dict['--cfile']
     cf_path = resolve_cf_file(cf_path) # move to the directory where the cf is located
 

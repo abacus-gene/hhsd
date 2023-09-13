@@ -19,7 +19,7 @@ def check_output_dir(
         ):
 
     if output_directory == None:
-        sys.exit("cfile error: no 'output_directory' provided. specify a folder where the results of the analysis should be deposited")
+        sys.exit("MissingParameterError: no 'output_directory' provided. specify a folder where the results of the analysis should be deposited")
     check_folder(output_directory)
     
     final_output_directory = Path(output_directory).resolve(strict=False)
@@ -35,7 +35,7 @@ def check_msa_file(
         ):
 
     if seqfile == None:
-        sys.exit("cfile error: 'seqfile' not specified")
+        sys.exit("MissingParameterError: 'seqfile' not specified")
     
     check_file_exists(seqfile, 'seqfile')
     
@@ -43,14 +43,14 @@ def check_msa_file(
     try:
         align = alignfile_to_MSA(seqfile)
     except:
-        sys.exit(f"cfile error: 'seqfile' {seqfile} is not a valid phylip MSA")
+        sys.exit(f"InputDataError: The seqfile '{seqfile}' is not a valid phylip MSA")
 
     # check that all sequence ids are formatted correctly
     for curr_locus in align:
         curr_id_list = [seq.id for seq in curr_locus]
         for id in curr_id_list:
             if not bool(re.fullmatch(r"^\S+\^\S+$|^\^\S+$", id)):
-                sys.exit(f"Error: sequence names in 'seqfile' '{seqfile}' do not follow requred naming conventions. \nSequence names should be in the format seq_id^individual_id or ^individual_id.")
+                sys.exit(f"InputDataError: sequence names in 'seqfile' '{seqfile}' do not follow requred naming conventions. \nSequence names should be in the format seq_id^individual_id or ^individual_id.")
 
     final_seqfile = Path(seqfile).resolve(strict=True)
 
@@ -67,7 +67,7 @@ def check_imap_file(
         ):
 
     if imapfile == None:
-        sys.exit("cfile error: 'Imapfile' not specified")
+        sys.exit("MissingParameterError: 'Imapfile' not specified")
     
     check_file_exists(imapfile, 'imapfile')
 
@@ -76,7 +76,7 @@ def check_imap_file(
         imap = imapfile_read(imapfile, "popind")
         imap = imapfile_read(imapfile, "indpop")
     except:
-        sys.exit(f"cfile error: 'Imapfile' {imapfile} is not of the correct filetype")
+        sys.exit(f"InputDataError: 'Imapfile' {imapfile} is not of the correct filetype")
 
     final_imapfile = Path(imapfile).resolve(strict=True)
 
@@ -92,36 +92,43 @@ def check_newick(
 
     # check if tree is supplied    
     if tree == None:
-        sys.exit("cfile error: 'guide_tree' not supplied")
+        sys.exit("MissingParameterError: 'guide_tree' not supplied")
     
     # check if tree can be ingested as a newick tree
     else:
         try:
             t = Tree(tree)
         except:
-            sys.exit("cfile error: 'guide_tree' could not be processed. Check formatting.")
+            sys.exit("GuideTreeError: guide tree could not be processed. Check formatting.")
     
     
-    node_names = [node.name for node in t.traverse("postorder") if node.name != ""]
+    node_names = [node.name for node in t.traverse("postorder") if node.name != ""] # internal node names are not assesed
 
     # check for less than 2 nodes
     if len(node_names) < 2:
-        sys.exit("Error: 'guide_tree' must have at least two nodes")
+        sys.exit("GuideTreeError: guide tree must have at least two nodes")
+
+    # check for node names starting with numbers or with special characters
+    for name in node_names:
+        if re.match(r'^\d', name):
+            sys.exit(f"GuideTreeError: guide tree has species names starting with numbers.\nRename '{name}'")
+        if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+            sys.exit(f"GuideTreeError: guide tree has species names with non standard characters.\nRename '{name}'\nAllowed charcters are a-z, A-Z, 0-9, '_', and '-'")
 
     # check for repeated node names
     if len(node_names) > len(set(node_names)):
-        sys.exit("Error: 'guide_tree' has repeated node names")
+        sys.exit("GuideTreeError: guide tree has repeated node names")
 
     # check for conflicts arising from overlaps between leaf and node names
     t = name_internal_nodes(t)
     node_names = [node.name for node in t.traverse("postorder")]
     if len(node_names) > len(set(node_names)):
-        sys.exit("Error: 'guide_tree' internal node names overlap with leaf node names")
+        sys.exit("GuideTreeError: guide tree internal node names overlap with leaf node names")
 
     # check if the tree is binary, and return a special error if not
     for node in t.traverse():
         if len(node.get_children()) not in [0, 2]:
-            sys.exit("Error: 'guide_tree' is not binary")
+            sys.exit("GuideTreeError: guide tree is not binary")
 
     return True
 
@@ -152,7 +159,7 @@ def check_imap_msa_compat(
     # check if the two sets of names are not identical
     if names_imap != names_align:
         
-        error_msg = "cfile error: Imap and seqfile are incompatible\n"
+        error_msg = "InputDataError: Imap and seqfile are incompatible\n"
         
         not_found_in_alignment = names_imap.difference(names_align)
         if len(not_found_in_alignment) > 0:
@@ -188,7 +195,7 @@ def check_imap_tree_compat(
     # if not, provide detailed feedback about the missing populations
     if pops_imap != pops_tree:
         
-        error_msg = "cfile error: Imap and guide tree are incompatible\n"
+        error_msg = "InputDataError: Imap and guide tree are incompatible\n"
         
         not_found_in_alignment = pops_imap.difference(pops_tree)
         if len(not_found_in_alignment) > 0:
@@ -224,7 +231,7 @@ def check_can_infer_theta(
         insufficient = [pop for pop in seq_per_pop if seq_per_pop[pop] < 2]
 
         if len(insufficient) > 0:
-            error_msg = "cfile error: insufficient number of sequences in:\n"
+            error_msg = "InputDataError: insufficient number of sequences in:\n"
             for pop in insufficient: error_msg += f"\t'{pop}' {seq_per_pop[pop]}\n"
             error_msg += "\nTheta cannot be estimated for unphased populations with 1 sequence.\nadd more sequences, remove species from the analysis, or specify phasing"
             sys.exit(error_msg)
@@ -238,7 +245,7 @@ def check_mode(
         ):
 
     if mode not in ['merge', 'split']:
-        sys.exit("cfile error: please specify 'mode' as 'merge' or 'split'")
+        sys.exit("MissingParameterError: please specify 'mode' as 'merge' or 'split'")
 
 # check if the gdi threshold is correctly specified
 def check_gdi_threshold(
@@ -247,15 +254,15 @@ def check_gdi_threshold(
         ):
         
     if gdi_thresh == None:
-        sys.exit("cfile error: 'gdi_threshold' not specified. Please specify relation and cutoff value")
+        sys.exit("MissingParameterError: 'gdi_threshold' not specified. Please specify relation and cutoff value")
     else:
         if not bool(re.fullmatch("\A[<>]{1}[0]{1}[.]{1}[0-9]+\Z", gdi_thresh)):
-            sys.exit(f"cfile error: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'.\nPlease specify as '<0.x' or  '>0.x' (e.g. '<0.5' or '>0.8') depending on the mode")
+            sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'.\nPlease specify as '<0.x' or  '>0.x' (e.g. '<0.5' or '>0.8') depending on the mode")
 
         elif mode == "merge" and gdi_thresh[0] != "<":
-            sys.exit(f"cfile error: in merge mode, the 'gdi_threshold' is an upper bound. specify as '<{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
+            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. specify as '<{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
         elif mode == "split" and gdi_thresh[0] != ">":
-            sys.exit(f"cfile error: in merge mode, the 'gdi_threshold' is a lower bound. specify as '>{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
+            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is a lower bound. specify as '>{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
 
         return float(gdi_thresh[1:]) # return the parameter in the correct type
 
@@ -272,18 +279,18 @@ def check_migration_newick_compatibility(
 
     # check that there are no duplicates
     if any(mig_df.duplicated()):
-        sys.exit("cfile error: same migration event specified more than once")
+        sys.exit("MigrationParameterError: same migration event specified more than once")
 
     # check if any of the migration events lack a source or destination
     missing_values_df = source_dest_df[source_dest_df.isnull().any(axis=1)]
     if len(missing_values_df["source"]) > 0:
-        sys.exit(f"cfile error: the following specified migration events lack a source and/or destination:\n{missing_values_df.to_string()}")
+        sys.exit(f"MigrationParameterError: the following specified migration events lack a source and/or destination:\n{missing_values_df.to_string()}")
 
     # check if all of the values correspond to known populations
     all_known_populations = get_all_populations(tree_newick)
     unknown_names_df = source_dest_df[source_dest_df[source_dest_df.isin(all_known_populations)].isnull().any(axis=1)]
     if len(unknown_names_df["source"]) > 0:
-        sys.exit(f"cfile error: the following specified migration events have a source and/or destination population that is not found in the guide tree:\n{unknown_names_df.to_string()}")
+        sys.exit(f"MigrationParameterError: the following specified migration events have a source and/or destination population that is not found in the guide tree:\n{unknown_names_df.to_string()}")
 
     
     # check that no migration events occur between descendants 
@@ -296,7 +303,7 @@ def check_migration_newick_compatibility(
         source_node = tree.search_nodes(name = source_name)[0]; dest_node = tree.search_nodes(name = dest_name)[0]
         source_ancestors = source_node.iter_ancestors(); dest_ancestors = dest_node.iter_ancestors();
         if (source_node in dest_ancestors) or (dest_node in source_ancestors):
-            sys.exit(f"cfile error: migration from '{source_name}' to '{dest_name}' not possible, as one is a descendant of the other.")
+            sys.exit(f"MigrationParameterError: migration from '{source_name}' to '{dest_name}' not possible, as one is a descendant of the other.")
 
 
 # check that the migration parameter has a valud value
@@ -309,19 +316,19 @@ def check_migration(
     # no migration
     if   migration == None:
         if migprior != None:
-            sys.exit("cfile error: 'migprior' specified, but migration pattern was not.\nRemove migprior to analyse without migration, or specify migration patterns.")
+            sys.exit("MigrationParameterError: 'migprior' specified, but migration pattern was not.\nRemove migprior to analyse without migration, or specify migration patterns.")
         mig = None
     
     # specified migration
     elif migration[0] == "{" and migration[-1] == "}":
         if migprior == None:
-            sys.exit("cfile error: migration pattern was specified, but 'migprior' not specified, but . Please specify a prior value for migration rates.")
+            sys.exit("MigrationParameterError: migration pattern was specified, but 'migprior' not specified, but . Please specify a prior value for migration rates.")
 
         mig = read_specified_mig_pattern(migration)
         check_migration_newick_compatibility(mig, guide_tree)
 
     else:
-        sys.exit("cfile error: migration parameter incorrectly specified. Refer to manual.")
+        sys.exit("MigrationParameterError: migration parameter incorrectly specified. Refer to manual.")
 
     return mig
 
