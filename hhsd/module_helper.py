@@ -106,11 +106,11 @@ def check_file_exists(
         filepath = Path(path)
         filepath = filepath.resolve(strict=False) # will attempt to resolve the path, even if the file does not exist
     except:
-        sys.exit(f"Error: file path of {type_of_file} ('{path}') could not be resolved.")
+        sys.exit(f"FilePathError: file path of {type_of_file} ('{path}') could not be resolved.")
     
     # check if location is a file
     if not filepath.is_file():
-        sys.exit(f"Error: {type_of_file} location parameter '{path}' implies that \n'{filepath}' \nexists, but no such location was found in the file system.\nspecify file paths relative to the directory of the MCF, or use absolute paths")    
+        sys.exit(f"FileNotFoundError: {type_of_file} location parameter '{path}' implies that \n'{filepath}' \nexists, but no such location was found in the file system.\nSpecify file paths relative to the directory of the control file, or use absolute paths.")    
 
 # check if a specified folder does not exist, or is empty
 def check_folder(
@@ -122,13 +122,20 @@ def check_folder(
         filepath = Path(path)
         filepath = filepath.resolve(strict=False) # will attempt to resolve the path, even if the file does not exist
     except:
-        sys.exit(f"Error: file path of suggested 'output_directory' ('{path}') could not be resolved.")
+        sys.exit(f"FilePathError: file path of suggested 'output_directory' ('{path}') could not be resolved.")
     
     # check if location is a file
     if filepath.exists():
         if len(os.listdir(filepath)) != 0:
-            sys.exit(f"Error: output directory '{path}' is non-empty.\ndelete files from '{filepath}'\nor provide the name of a new 'output_directory'")
-    
+            sys.exit(f"ExistingFilesError: output directory '{path}' is non-empty.\ndelete files from '{filepath}'\nor provide the name of a new 'output_directory'")
+
+def format_time(seconds):
+    '''
+    format time from seconds to H:M:S
+    '''
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return f'{round(hours)}:{round(minutes)}:{round(seconds)}'
 
 
 # check if a single numeric parameter is supplied in the correct format and range
@@ -171,7 +178,7 @@ def param_name_match(
     if len(match) == 0:
         return ""
     else:
-        return f"(did you mean {str(match)[1:-1]}?)"
+        return f"(Did you mean {str(match)[1:-1]}?)"
 
 
 # handle the creation of the working directory if it is not already present

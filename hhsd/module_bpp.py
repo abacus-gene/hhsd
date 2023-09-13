@@ -9,8 +9,20 @@ import random
 import sys
 import time
 
-from .module_helper import readlines, dict_merge, get_bundled_bpp_path
+from .module_helper import readlines, dict_merge, get_bundled_bpp_path, format_time
 from .module_msa_imap import auto_prior, auto_nloci
+
+
+# Custom styler function to format floats and tuples of floats with six decimal places
+def format_float(value):
+    if isinstance(value, float):
+        return format(value, '.6f')
+    elif isinstance(value, tuple):
+        return tuple(format(x, '.6f') if isinstance(x, float) else (' ' if pd.isna(x) else x) for x in value)
+    elif pd.isna(value):
+        return ' '  # Replace Pandas NaN with empty string
+    else:
+        return value
 
 
 # contains the list of parameters that need to be present in a BPP control file
@@ -120,6 +132,9 @@ def run_BPP_A00(
     bpp_completed = False
     
     while not bpp_completed:
+        start_time = time.time()
+        progress = ' '
+
         # runs BPP in a dedicated subprocess
         process = subprocess.Popen(
             f"{get_bundled_bpp_path()} --cfile {control_file}", 
@@ -162,13 +177,13 @@ def run_BPP_A00(
             # proide feedback about completeness and time elapsed
             try:
                 percentage = realtime_output.split()[0]
-                last = realtime_output.split()[-1]
-                if ":" in last:
-                    elapsed = last
                 if "%" in percentage and "." not in percentage: 
-                    print(f"BPP progress: {percentage}    {elapsed}                      ", end = "\r")
+                    progress = percentage
             except:
                 pass
+            
+            # print current state of progress
+            print(f"BPP progress: {progress}      {format_time(time.time() - start_time)}                      ", end = "\r")
         
             # exit if process is stopped
             if realtime_output == '' and process.poll() is not None:
@@ -298,12 +313,17 @@ def extract_tau_theta_values(
     theta_mean_dict = estimated_param_df.query("`type` == 'theta'").set_index('node')['mean'].to_dict()
     theta_hpd_dict = estimated_param_df.query("`type` == 'theta'").set_index('node')['hpd_95'].to_dict()
 
-    # create dataframe to print results for user feedback
+    # create dataframe
     df = pd.DataFrame.from_dict([theta_mean_dict, theta_hpd_dict, tau_mean_dict, tau_hpd_dict])
-    df = df.transpose(); df = df.rename({0: 'theta', 1: ' ', 2: 'tau', 3: '  '}, axis=1)
+    df = df.transpose()
+    df = df.rename({0: 'theta', 1: ' ', 2: 'tau', 3: '  '}, axis=1)
+    
+    # write to disk
     df.to_csv("estimated_tau_theta.csv")
 
+    # format for printing, and print to screen
     print("\nEstimated tau and theta parameters:\n")
+    for col in df.columns: df[col] = df[col].apply(format_float)
     print(df.to_string(index=True, max_colwidth=36, justify="start", na_rep=' ',))
     
     return tau_mean_dict, theta_mean_dict
@@ -332,13 +352,17 @@ def extract_mig_param_to_df(
             df['source'] = df['node'].apply(lambda x: x.split('->')[0])
             df['destination'] = df['node'].apply(lambda x: x.split('->')[1])
             df = df[['source', 'destination', 'mean', 'hpd_95']]
-
             df.rename(columns={'mean': 'M', 'hpd_95': '  '}, inplace=True)
 
-            print("\nEstimated migration rates:\n")
-            print(df.to_string(index=False, max_colwidth=36, justify="start"))
+            # write to disk
             df.to_csv("estimated_M.csv", index=False)
 
-            df.drop('  ', axis=1, inplace=True) # needed for compatibility reasons
+            # format for printing, and print to screen
+            print("\nEstimated migration rates:\n")
+            for col in df.columns: df[col] = df[col].apply(format_float)
+            print(df.to_string(index=False, max_colwidth=36, justify="start"))
+
+            # format by removing hpd column before returning
+            df.drop('  ', axis=1, inplace=True)
             
             return df
