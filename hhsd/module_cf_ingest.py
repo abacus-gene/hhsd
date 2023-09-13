@@ -8,7 +8,7 @@ import sys
 from collections import Counter
 
 from .module_helper import read_filter_comments, read_format_curlybrackets, stripall, dict_merge, param_name_match
-from .module_check_helper_cf import check_output_dir, check_msa_file, check_imap_file, check_newick, check_imap_msa_compat, check_imap_tree_compat, check_can_infer_theta, check_mode, check_GDI_threshold, check_migration
+from .module_check_helper_cf import check_output_dir, check_msa_file, check_imap_file, check_newick, check_imap_msa_compat, check_imap_tree_compat, check_can_infer_theta, check_mode, check_gdi_threshold, check_migration
 from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_finetune, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_migprior, check_phase
 
 # dictionary of CF parameters that are currently supported
@@ -23,7 +23,7 @@ cf_param_dict =    {
     #"mrate"                 :None,
     # parameters for the hierarchical method
     "mode"                  :None,
-    "GDI_threshold"          :None,
+    "gdi_threshold"          :None,
     #"generation_threshold"  :None,
     #"decision_criteria"     :None,
     # parameters passed to BPP instances
@@ -163,7 +163,7 @@ def cf_parameter_check(
     
         # check parameters of the hierarchical method
     check_mode(cf['mode'])
-    cf['GDI_threshold'] = check_GDI_threshold(cf['GDI_threshold'], cf['mode'])
+    cf['gdi_threshold'] = check_gdi_threshold(cf['gdi_threshold'], cf['mode'])
 
     # Checking parameters passed to BPP(functions explained and implemented in 'module_check_helper_bpp')
     check_seed(cf['seed'])

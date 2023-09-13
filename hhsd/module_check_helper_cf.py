@@ -241,21 +241,21 @@ def check_mode(
         sys.exit("cfile error: please specify 'mode' as 'merge' or 'split'")
 
 # check if the gdi threshold is correctly specified
-def check_GDI_threshold(
+def check_gdi_threshold(
         gdi_thresh,
         mode
         ):
         
     if gdi_thresh == None:
-        sys.exit("cfile error: 'GDI_threshold' not specified. Please specify relation and cutoff value")
+        sys.exit("cfile error: 'gdi_threshold' not specified. Please specify relation and cutoff value")
     else:
         if not bool(re.fullmatch("\A[<>]{1}[0]{1}[.]{1}[0-9]+\Z", gdi_thresh)):
-            sys.exit(f"cfile error: 'GDI_threshold' incorrectly specified as '{gdi_thresh}'.\nPlease specify as '<0.x' or  '>0.x' (e.g. '<0.5' or '>0.8') depending on the mode")
+            sys.exit(f"cfile error: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'.\nPlease specify as '<0.x' or  '>0.x' (e.g. '<0.5' or '>0.8') depending on the mode")
 
         elif mode == "merge" and gdi_thresh[0] != "<":
-            sys.exit(f"cfile error: in merge mode, the 'GDI_threshold' is an upper bound. specify as '<{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
+            sys.exit(f"cfile error: in merge mode, the 'gdi_threshold' is an upper bound. specify as '<{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
         elif mode == "split" and gdi_thresh[0] != ">":
-            sys.exit(f"cfile error: in merge mode, the 'GDI_threshold' is a lower bound. specify as '>{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
+            sys.exit(f"cfile error: in merge mode, the 'gdi_threshold' is a lower bound. specify as '>{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
 
         return float(gdi_thresh[1:]) # return the parameter in the correct type
 

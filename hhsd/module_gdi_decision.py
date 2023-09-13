@@ -75,11 +75,11 @@ def node_pair_decision(
         ) ->        None: # in-place modification of node attributes
 
     mode = cf_dict['mode']
-    GDI_threshold = cf_dict['GDI_threshold']
+    gdi_threshold = cf_dict['gdi_threshold']
 
     if   mode == 'merge':
         # if at least one of the 2 populations has low gdi indicating non-species status, merge the nodes
-        if (node_1.gdi < GDI_threshold) or (node_2.gdi < GDI_threshold): 
+        if (node_1.gdi < gdi_threshold) or (node_2.gdi < gdi_threshold): 
             node_1.species = False; node_1.modified = True
             node_2.species = False; node_2.modified = True
         else:
@@ -88,7 +88,7 @@ def node_pair_decision(
 
     elif mode == 'split':
         # if both populations have high gdi indiciating, disctinct species status, split them into 2 species
-        if ((node_1.gdi > GDI_threshold) and (node_2.gdi > 0.5)) or ((node_2.gdi > GDI_threshold) and (node_1.gdi > 0.5)):
+        if ((node_1.gdi > gdi_threshold) and (node_2.gdi > 0.5)) or ((node_2.gdi > gdi_threshold) and (node_1.gdi > 0.5)):
             node_1.species = True;  node_1.modified = True
             node_2.species = True;  node_2.modified = True
         else:
