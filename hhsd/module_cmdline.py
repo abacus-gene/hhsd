@@ -86,9 +86,9 @@ def cmdline_init(
         argument_list
         ):
 
-    # check if bpp is available from the shell on the given computer
-    if subprocess.getstatusoutput('bpp')[0] != 0:
-        sys.exit("Error: 'bpp' must be installed and available as a shell command.\nConsult the BPP manual for instructions on how to install.")
+    # # check if bpp is available from the shell on the given computer
+    # if subprocess.getstatusoutput('bpp')[0] != 0:
+    #     sys.exit("Error: 'bpp' must be installed and available as a shell command.\nConsult the BPP manual for instructions on how to install.")
 
     # check that the required arguments are provided
     arguments_dict = categorise_arguments(argument_list[1:])

@@ -6,6 +6,8 @@ import re
 import copy
 import sys
 import os
+from pkg_resources import resource_filename
+import platform
 from pathlib import Path
 from difflib import SequenceMatcher
 
@@ -180,3 +182,28 @@ def output_directory(
     if not output_directory.exists():
         output_directory.mkdir(parents = True)
     os.chdir(output_directory)
+
+
+def get_bundled_bpp_path():
+    '''
+    get the correct platform-specific path to the bundled bpp executable, depending on the platform of the user
+    '''
+    # Determine the user's operating system
+    system = platform.system()
+    
+    # Get the absolute path to the directory where the script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Define the absolute path from the script folder to the bpp folder
+    bpp_folder = os.path.join(script_dir, 'bpp')
+
+    if system == 'Windows':
+        exec_path = os.path.join(bpp_folder, 'windows', 'bpp.exe')
+    elif system == 'Linux':
+        exec_path = os.path.join(bpp_folder, 'linux', 'bpp')
+    elif system == 'Darwin':  # macOS
+        exec_path = os.path.join(bpp_folder, 'macos', 'bpp')
+    else:
+        raise Exception(f"Unsupported operating system: {system}")
+
+    return exec_path

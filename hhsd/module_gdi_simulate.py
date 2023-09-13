@@ -9,7 +9,7 @@ import os
 from typing import Literal, Dict, List
 
 from .module_ete3 import Tree, TreeNode
-from .module_helper import readlines, dict_merge
+from .module_helper import readlines, dict_merge, get_bundled_bpp_path
 from .module_bpp import bppcfile_write
 from .module_tree import get_attribute_filtered_tree
 
@@ -180,7 +180,7 @@ def run_BPP_simulate(
 
     # runs BPP in a dedicated subprocess
     process = subprocess.Popen(
-        f"bpp --simulate {control_file}", 
+        f"{get_bundled_bpp_path()} --simulate {control_file}", 
         shell = True, 
         bufsize = 1,
         stdout = subprocess.PIPE, 

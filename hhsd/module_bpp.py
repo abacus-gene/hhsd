@@ -9,7 +9,7 @@ import random
 import sys
 import time
 
-from .module_helper import readlines, dict_merge
+from .module_helper import readlines, dict_merge, get_bundled_bpp_path
 from .module_msa_imap import auto_prior, auto_nloci
 
 
@@ -122,7 +122,7 @@ def run_BPP_A00(
     while not bpp_completed:
         # runs BPP in a dedicated subprocess
         process = subprocess.Popen(
-            f"bpp --cfile {control_file}", 
+            f"{get_bundled_bpp_path()} --cfile {control_file}", 
             shell = True, 
             bufsize = 1,
             stdout = subprocess.PIPE, 
