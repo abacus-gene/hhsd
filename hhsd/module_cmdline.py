@@ -86,16 +86,12 @@ def cmdline_init(
         argument_list
         ):
 
-    # # check if bpp is available from the shell on the given computer
-    # if subprocess.getstatusoutput('bpp')[0] != 0:
-    #     sys.exit("Error: 'bpp' must be installed and available as a shell command.\nConsult the BPP manual for instructions on how to install.")
-
     # check that the required arguments are provided
     arguments_dict = categorise_arguments(argument_list[1:])
 
         # load splash text if no arguments are provided
     if len(arguments_dict) == 0:
-        sys.exit(f"hhsd version 0.9.7\n{multiprocessing.cpu_count()} cores available\n\nspecify control file for analysis with --cfile")
+        sys.exit(f"hhsd version 0.9.8\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
 
         # check that the control file is specified
     if "--cfile" not in arguments_dict:

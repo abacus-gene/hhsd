@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 setup(
     name='hhsd',
-    version='0.9.7',
+    version='0.9.8',
     author='Daniel Kornai',
     description='Hierarchical heuristic species delimitation under the multispecies coalescent model with migration.',
     url='https://github.com/abacus-gene/hhsd',
+    
     packages=find_packages(),
 
-    # Include additional files into the package
     package_data={
         'hhsd': ['bpp/*/*'],  # include all files under bpp folder and its subfolders
     },
