@@ -80,7 +80,7 @@ def node_pair_decision(
 
     if   mode == 'merge':
         # if at least one of the 2 populations has low gdi indicating non-species status, merge the nodes
-        if (node_1.gdi < gdi_threshold) or (node_2.gdi < gdi_threshold): 
+        if gdi_threshold == None or (node_1.gdi <= gdi_threshold) or (node_2.gdi <= gdi_threshold): 
             node_1.species = False; node_1.modified = True
             node_2.species = False; node_2.modified = True
         else:
@@ -89,7 +89,7 @@ def node_pair_decision(
 
     elif mode == 'split':
         # if both populations have high gdi indiciating, disctinct species status, split them into 2 species
-        if ((node_1.gdi > gdi_threshold) and (node_2.gdi > 0.5)) or ((node_2.gdi > gdi_threshold) and (node_1.gdi > 0.5)):
+        if gdi_threshold == None or ((node_1.gdi >= gdi_threshold) and (node_2.gdi >= 0.5)) or ((node_2.gdi >= gdi_threshold) and (node_1.gdi >= 0.5)):
             node_1.species = True;  node_1.modified = True
             node_2.species = True;  node_2.modified = True
         else:
@@ -133,7 +133,7 @@ def print_decision_feedback(
     print(df.to_string(index=False, max_colwidth=36, justify="start"))
     
     # print the names of currently accepted species
-    print(f"\nAccepted species after iteration {get_iteration(tree)}: {len(get_current_leaf_species(tree))}")
+    print(f"\nNumber of species after iteration {get_iteration(tree)}:  {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
 
     # print current topology as ASCII

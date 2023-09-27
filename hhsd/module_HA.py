@@ -43,7 +43,7 @@ def set_starting_state(
 
     # print feedback about starting state
     print(f"*** Starting state of {algorithm_direction} analysis ***\n")
-    print(f"Accepted species in starting delimitation: {len(get_current_leaf_species(tree))}")
+    print(f"Number of species in starting delimitation:  {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
     print(get_attribute_filtered_tree(tree, "species", newick=False))
 

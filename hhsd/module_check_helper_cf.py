@@ -254,7 +254,10 @@ def check_gdi_threshold(
         ):
         
     if gdi_thresh == None:
-        sys.exit("MissingParameterError: 'gdi_threshold' not specified. Please specify relation and cutoff value")
+        sys.exit("MissingParameterError: 'gdi_threshold' not specified.")
+    elif gdi_thresh == "None":
+        print(f"Activating gdi estimation mode. All {mode} proposals will be automatically accepted!\n")
+        return None
     else:
         if not bool(re.fullmatch("\A[<>]{1}[0]{1}[.]{1}[0-9]+\Z", gdi_thresh)):
             sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'.\nPlease specify as '<0.x' or  '>0.x' (e.g. '<0.5' or '>0.8') depending on the mode")
