@@ -172,7 +172,7 @@ def HA_iteration(
     
     # run BPP and capture the output
     run_BPP_A00("proposed_ctl.ctl")
-    estimated_param_df = extract_param_estimate_from_outfile(BPP_outfile="out.txt")
+    estimated_param_df = extract_param_estimate_from_outfile(BPP_outfile="proposal_bpp_out.txt")
     tau_theta_values = extract_tau_theta_values(estimated_param_df)
     migration_df     = extract_mig_param_to_df (estimated_param_df, mig = cf_dict['migration'])
 
