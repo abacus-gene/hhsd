@@ -8,11 +8,12 @@ from typing import Literal, Dict, List
 import pandas as pd
 
 from .module_ete3 import Tree, TreeNode
-from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, add_attribute_gdi
+from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, add_attribute_gdi, get_attribute_filtered_imap, tree_to_newick
 from .module_helper import flatten
 from .module_migration import check_migration_reciprocal
 from .module_gdi_numeric import get_gdi_numerical
 from .module_gdi_simulate import genetree_simulation, get_gdi_simulation
+from .module_msa_imap import imapfile_write
 
 
 # calculate the gdi values for the node pairs to be modified, based on the results from the A00 analysis
@@ -96,13 +97,16 @@ def node_pair_decision(
 
 
 
-# print feedback about each of the node pairs where modifications where proposed        
 def print_decision_feedback(
         node_pairs_to_modify,
         tree:                   Tree,
         cf_dict:                dict
         ) ->                    None: # prints to screen, and writes files
 
+    '''
+    - Prints feedback about each of the node pairs where modifications where proposed.\\
+    - Writes .csv files containing the names of node pairs and their gdi scores.       
+    '''
 
     # function to collect parameters about the node pair relevant to the decision
     def node_pair_feedback(node_1, node_2, cf_dict):
@@ -124,10 +128,12 @@ def print_decision_feedback(
     df = pd.DataFrame.from_dict(feedback)
     df.to_csv("decision.csv")
 
+    # print each node pair, the gdi, and whether the proposal as accepted
     print(f"\nProposal results:\n")
     print(df.to_string(index=False, max_colwidth=36, justify="start"))
     
-    print(f"\nNumber of species after iteration {get_iteration(tree)}: {len(get_current_leaf_species(tree))}\n")
+    # print the names of currently accepted species
+    print(f"\nAccepted species after iteration {get_iteration(tree)}: {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
 
     # print current topology as ASCII
@@ -155,9 +161,13 @@ def tree_modify(
     
     print_decision_feedback(node_pairs_to_modify, tree, cf_dict)
 
-    # output the current imap, and current tree as a newick
-    '''
-    --- todo --- 
-    '''
+    # output the current imap of accepted species
+    result_imap = get_attribute_filtered_imap(tree, attribute='species')
+    imapfile_write(result_imap, 'RESULT_IMAP.txt')
+
+    # output the currently accepted newick tree
+    result_tree = get_attribute_filtered_tree(tree, attribute='species')
+    with open('RESULT_TREE.txt', 'w') as f:
+        f.write(result_tree)
 
     return tree

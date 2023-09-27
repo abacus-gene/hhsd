@@ -15,19 +15,20 @@ from .module_migration import append_migrate_rows
 
 ## MODIFICATION PROPOSAL RELATED FUNCTIONS
 
-###
-'''
-Runs before the iterations of the HM algorithm, and sets the starting species delimitation.
--In merge mode, all populations in the guide tree start as species.
--In split mode, only the root node is a species, as all populations are merged into a single species.
 
-Species status is marked with a node attribute "species".
-'''
 def set_starting_state(
         tree,
         algorithm_direction,
         ):
     
+    '''
+    Runs before the iterations of the HM algorithm, and sets the starting species delimitation.
+    - In merge mode, all populations in the guide tree start as species.
+    - In split mode, only the root node is a species, as all populations are merged into a single species.
+
+    Species status is marked with a node attribute "species".
+    '''
+
     print('\n< Analysis started >\n')
     
     # in "merge" mode, all starting populations are initally accepted as species
@@ -41,26 +42,29 @@ def set_starting_state(
         root_node.species = True
 
     # print feedback about starting state
-    print(f"< Starting state of {algorithm_direction} mode >\n")
-    print(f"> Accepted species ({len(get_current_leaf_species(tree))}) in starting delimitation:")
+    print(f"*** Starting state of {algorithm_direction} analysis ***\n")
+    print(f"Accepted species in starting delimitation: {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
     print(get_attribute_filtered_tree(tree, "species", newick=False))
 
     return tree
 
-###
-'''
-Proposes modifications to the topology by identifying the nodes whose species status will be assesed.
--in merge mode, it indentifies leaf species node pairs that can be merged
--in split mode, it identifies the descendant pairs of currently accepted leaf species nodes.
 
-The requirement for the species status of a node to be assesed is marked with the "proposal" attribute.
-'''
-def set_proposal_attributes(
+def set_tree_proposal_attributes(
         tree,
         mode
         ):
     
+    '''
+    Propose modifications to the topology by identifying the nodes whose species status will be assesed.
+    - in merge mode, it indentifies leaf species node pairs that can be merged
+    - in split mode, it identifies the descendant pairs of currently accepted leaf species nodes.
+
+    The requirement for the species status of a node to be assesed is marked with the "proposal" attribute.
+    '''
+
+    tree = copy.deepcopy(tree)
+
     # start by marking all population nodes as non-leaf, and reset the status of current and accepted proposals
     for node in tree.search_nodes(node_type="population"): 
         node.add_features(leaf = False, proposal = None, modified = None)
@@ -110,26 +114,17 @@ def set_proposal_attributes(
     return tree
 
 
-# implements the proposed changes to the tree topology
-def proposal_setup_tree(
-        tree,
-        mode,
-        ):
 
-    tree = copy.deepcopy(tree)
-    tree = set_proposal_attributes(tree, mode)
-    return tree
-
-###
-'''
-Writes the imap file and control file needed to evaluate the proposal
-'''
 def proposal_setup_files(
         tree,
         bpp_cdict,
         mode,
         migration,
         ):
+    
+    '''
+    Write the imap file and control file needed to evaluate a given proposal
+    '''
 
     # set up and write imap needed to evaluate proposal
     proposed_imap = get_attribute_filtered_imap(tree, mode)
@@ -143,21 +138,22 @@ def proposal_setup_files(
     bpp_cdict = dict_merge(bpp_cdict, prop_param)
     bppcfile_write(bpp_cdict, "proposed_ctl.ctl")
     
-        # add-on migration parameters to the control file, if migration patterns are specified
+    # add-on migration parameters to the control file, if migration patterns are specified
     if str(type(migration)) != "<class 'NoneType'>":
         append_migrate_rows(tree, mode, "proposed_ctl.ctl", migration)
 
     return tree
 
-###
-'''
-Important function implementing each iteration of the Hierarchical algorithm
-'''
+
 def HA_iteration(
         tree, 
         bpp_cdict, 
         cf_dict
         ):
+    
+    '''
+    Important function implementing each iteration of the Hierarchical algorithm
+    '''
 
     # increment iteration count
     root = tree.get_tree_root(); root.iteration = (root.iteration + 1)
@@ -169,7 +165,7 @@ def HA_iteration(
     os.chdir(iter_dir_name)
 
     # inititate proposal by setting node attributes
-    tree = proposal_setup_tree(tree, cf_dict["mode"])
+    tree = set_tree_proposal_attributes(tree, cf_dict["mode"])
 
     # create bpp control file and imap file corresponding to proposal
     proposal_setup_files(tree, bpp_cdict, cf_dict["mode"], cf_dict["migration"])
