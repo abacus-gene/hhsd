@@ -4,17 +4,23 @@ FUNCTIONS FOR PROCESSING MIGRATION EVENTS
 
 import sys
 import io
+from typing import Tuple, List
 
 import pandas as pd
 
+from .classes import MigrationPattern, NodeName, BppCfile
+from .module_ete3 import Tree, TreeNode
 from .module_helper import stripall
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree
 
-# load migration parameter into migration dataframe
+
 def read_specified_mig_pattern(
-        migration
-        ):
+        migration:  str
+        ) ->        MigrationPattern:
     
+    '''
+    Read a the specified migration patterns into a MigrationPattern dataframe
+    '''
     try: 
         
         # remove brackets, clean out tabs, and split at commas
@@ -37,8 +43,6 @@ def read_specified_mig_pattern(
 
             else:
                 migration_replaced.append(mig)
-
-            
         
         lines_text = "\n".join(migration_replaced)
 
@@ -50,19 +54,19 @@ def read_specified_mig_pattern(
         df = df.rename({0: 'source', 1: 'destination'}, axis=1)
 
     except:
-        sys.exit("Error: migration parameter incorrectly formatted. Refer to manual for further details.")
+        sys.exit("MigrationParameterError: Migration pattern incorrectly formatted.\nRefer to the manual for details on how to specify migration events.")
 
     return df
 
-# remaps the migration event between two populations to the populations currently accepted as species
 def remap_migrate(
-        tree, 
-        source_name, 
-        dest_name
-        ):
+        tree:           Tree, 
+        source_name:    NodeName, 
+        dest_name:      NodeName
+        ) ->            Tuple[NodeName, NodeName]:
 
     '''
-    Migration events in the guide topology must be remapped when the species delimitation changes.
+    Remaps the migration event between two populations to the populations currently accepted as species. Remapping must occur when the species delimitation changes.
+
     consider the following scenario, with migration from A to B, and C to B:
 
     A      B     C
@@ -94,45 +98,34 @@ def remap_migrate(
     return source_node.name, dest_node.name
 
 
-# append rows to the control file to infer migration parameters, depending on how the migration pattern was specified
 def append_migrate_rows(
-        tree, 
-        mode, 
-        ctl_file_name, 
-        mig
-        ):
+        tree:           Tree, 
+        mig:            MigrationPattern, 
+        ctl_file_name:  BppCfile,
+        ) ->            None: # writes to the bpp control file
     
-    # when the migration pattern is for sister nodes, automatically generate the required migration rows
-    if type(mig) == str:
-        pair_list = get_node_pairs_to_modify(tree, mode)
-        
-        # top row corresponds to number of migration events
-        txt = f'migration = {len(pair_list)*2}\n'
-        
-        # rest of the rows specify the populations between which migration occurs
-        for pair in pair_list:
-            txt += f'\t{pair[0].name} {pair[1].name}\n'
-            txt += f'\t{pair[1].name} {pair[0].name}\n'
+    '''
+    Append rows to the BPP control file to infer migration parameters, depending on how the migration pattern was specified.
+    '''
 
     # when the migration pattern is specified for certain nodes, get the resulting pattern
-    else:
-        tree = get_attribute_filtered_tree(tree, "population", newick=False)
-        
-        migration_list = []
-        for index, row in mig.iterrows():
-            remap = (remap_migrate(tree, row['source'], row['destination']))
-            # if a migration event occurs between nodes with the same ancestor that is currently accepted as species, then that migration event is now intra-species, so it is not processed 
-            if remap[0] != remap[1]:
-                # if the migration event has already been added (this can be due to remapping)
-                if remap not in migration_list:
-                    migration_list.append(remap)
+    tree = get_attribute_filtered_tree(tree, "population", newick=False)
+    
+    migration_list = []
+    for index, row in mig.iterrows():
+        remap = (remap_migrate(tree, row['source'], row['destination']))
+        # if a migration event occurs between nodes with the same ancestor that is currently accepted as species, then that migration event is now intra-species, so it is not processed 
+        if remap[0] != remap[1]:
+            # if the migration event has already been added (this can be due to remapping)
+            if remap not in migration_list:
+                migration_list.append(remap)
 
-        # top row corresponds to number of migration events
-        txt = f'migration = {len(migration_list)}\n'
-        
-        # rest of the rows specify the populations between which migration occurs
-        for pair in migration_list:
-            txt += f'\t{pair[0]} {pair[1]}\n'
+    # top row corresponds to number of migration events
+    txt = f'migration = {len(migration_list)}\n'
+    
+    # rest of the rows specify the populations between which migration occurs
+    for pair in migration_list:
+        txt += f'\t{pair[0]} {pair[1]}\n'
 
     # write resulting lines to the end of the control file
     with open(ctl_file_name, "a") as myfile:
@@ -140,45 +133,46 @@ def append_migrate_rows(
 
 
 
-# get the source of migration events to a node, and the destination of migration events from the node as lists
 def get_node_migration_events(
-        node, 
-        migration_df
-        ):
+        node:           TreeNode, 
+        mig_pattern:    MigrationPattern
+        ) ->            Tuple[List[NodeName],List[NodeName]]:
+    
+    '''
+    Get the source of migration events to a node and the destination of migration events from the node as lists
+    '''
 
     # source      of migration events to   the node
-    mig_source = migration_df[migration_df["destination"] == str(node.name)]["source"].to_list()
+    mig_source = mig_pattern[mig_pattern["destination"] == str(node.name)]["source"].to_list()
     # destination of migration events from the node
-    mig_dest   = migration_df[migration_df["source"] == str(node.name)]["destination"].to_list()
+    mig_dest   = mig_pattern[mig_pattern["source"] == str(node.name)]["destination"].to_list()
 
     return mig_source, mig_dest
 
 
 # check that all migration events a given node pair participate in only involve eachother
 def check_migration_reciprocal(
-        node_1, 
-        node_2,
-        migration_df
-        ):
+        node_1:         TreeNode, 
+        node_2:         TreeNode,
+        mig_pattern:    MigrationPattern
+        ) ->            bool:
 
     '''
-    If two node pairs A) dont participate in any migration events, or B) only participate in migration events involving
-    eachother, the numerical formula for calculating gdi values 'gdi_numeric' may be used.
+    If two nodes in pair\\ 
+    - do not participate in any migration events, or 
+    - only participate in migration events involving eachother
+    the numerical formula for calculating gdi values 'gdi_numeric' may be used.
     '''
 
     # if no migration events occur, then there are no non-reciprocal migration events
-    if migration_df is None:
+    if mig_pattern is None:
         return True
 
-    m_src_1, m_dest_1 = get_node_migration_events(node_1, migration_df)
-    m_src_2, m_dest_2 = get_node_migration_events(node_2, migration_df)
+    m_src_1, m_dest_1 = get_node_migration_events(node_1, mig_pattern)
+    m_src_2, m_dest_2 = get_node_migration_events(node_2, mig_pattern)
 
     # if all the migration sources and destinations are shared
     if all(a.count(node_1.name) == len(a) for a in [m_src_2, m_dest_2]) and all(a.count(node_2.name) == len(a) for a in [m_src_1, m_dest_1]):
-        
-
         return True
-
     else:
-
         return False

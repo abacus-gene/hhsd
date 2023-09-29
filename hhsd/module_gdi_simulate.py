@@ -6,8 +6,8 @@ import re
 import copy
 import subprocess
 import os
-from typing import Literal, Dict, List
 
+from .classes import BppCfile, BppCfileParam, GeneTrees, gdi, AlgoMode, MigrationRates
 from .module_ete3 import Tree, TreeNode
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path
 from .module_bpp import bppcfile_write
@@ -15,66 +15,6 @@ from .module_tree import get_attribute_filtered_tree
 
 
 ## INFERENCE OF GDI FROM GENETREES
-'''
-The gdi is defined as "the probability that the first coalescence is between the two A sequences and it happens before 
-reaching species divergence when we trace the genealogy backwards in time"
-
-This definition allows us to estimate the gdi from simulated gene tree topologies. After simulating many genetrees for a 
-fully specified MSC+M model with two sequences per population, the gdi of a given population can be estimated by counting '
-the proportion of genetrees where the two sequences from the population coalesce before reaching the divergence time between
-that population and its sister node.
-'''
-
-# function to find the number of gene trees with a1-a2 coalescence occuring before tau_AB (this is the estimate of the gdi)
-def gdi_genetree(
-        node_name:      str,           
-        tau_AB:         float,
-        genetree_lines: List[str]
-        ) ->            float:
-
-    '''
-    'node_name' is the name of the node for which the gdi is to be estimated
-
-    'tau_AB' is the divergence time between the given node and its sister node, for coalescence events to count towards the 
-    gdi, they have to occur before divergence.
-
-    'genetree_lines' is the list of 10^6 gene tree topologies and associated branch lengths from which the counting is done.
-
-    the output is the estimate for the gdi
-    '''
-
-    # create the regex corresponding to the required topology
-    correct_genetree = f'\({str(node_name).lower()}[12]\^{node_name}[:][0][.][\d]#,{str(node_name).lower()}[12]\^{node_name}:[0][.][\d]#\)'
-    correct_genetree = re.sub('#', '{6}', correct_genetree) # this is needed due to no '{''}' characters being allowed within f strings
-    
-    # find all occurrences of the correct topology
-    genetrees = [re.search(correct_genetree, element) for element in genetree_lines]
-    genetrees = [element.group(0) for element in genetrees if element]
-
-    # isolate the time at which each correct topology is achieved
-    num_match = (re.search('0.\d{6}', genetrees[0])); num_start = num_match.span()[0]; num_end = num_match.span()[1]
-    times = [float(element[num_start:num_end]) for element in genetrees]
-
-    # isolate the ocurrences that are after the split time for the populations
-    before_split = [element for element in times if element < tau_AB]
-
-    # gdi is the proportion of the loci where this topology is observed
-    return len(before_split)/len(genetree_lines)
-
-# wrapper function for getting adapting the simulation gdi function to the tree datastructure
-def get_gdi_simulation(
-        node:           TreeNode, 
-        genetree_lines: List[str]
-        ) ->            float:
-
-    node_name = node.name
-    ancestor = node.up; tau_AB = ancestor.tau
-
-    # gdi is the proportion of these topologies relative to all topologies
-    node_gdi = gdi_genetree(node_name, tau_AB, genetree_lines)
-
-    return round(node_gdi, 2)
-
 '''
 The functions in this section are responsible for outputing the list of 10^6 gene tree topologies with 
 associated branch lengths. 
@@ -91,15 +31,13 @@ Such a model defines the joint distribution of gene tree topolgies and coalescen
 and simulation can be used to sample this distribution. 
 '''
 
-# get the newick tree with tau and theta parameters
 def tree_to_extended_newick(
         tree:   Tree
         ) ->    str:
 
     '''
     'tree' is an ete3 Tree object which contains the topology, and the tau and theta values as node attributes.
-    
-    the output of this function is an extended newick tree that also contains information about the tau and theta values.
+    The output is an extended newick tree that also contains information about the tau and theta values.
     '''
 
     # create the extended newick version of the tree topology which contains the tau and theta values
@@ -121,7 +59,7 @@ def tree_to_extended_newick(
 
 
 # default parameters for a 'bpp --simulate' control file used for simulating gene trees
-default_BPP_simctl_dict = {
+default_BPP_simctl_dict:BppCfileParam = {
     'seed':                 '1111',
     'treefile':             'MyTree.tre', 
     'Imapfile':             'MyImap.txt', 
@@ -135,20 +73,18 @@ default_BPP_simctl_dict = {
 # create the bpp --simulate cfile for simulating gene trees
 def create_simulate_cfile(
         tree:           Tree, 
-        mode, 
-        migration_df
-        ):
+        mode:           AlgoMode, 
+        migration_df:   MigrationRates
+        ) ->            None: # writes control file to disk
 
     '''
-    'tree' is an ete3 Tree object.
-
-    'mode' specifies whether the algo is running in merge or split mode.
-
-    'migration_df' is the DataFrame object containing the source, destination, and rate (M) for all migration events.
+    - 'tree' is an ete3 Tree object.
+    - 'mode' specifies whether the algo is running in merge or split mode.
+    - 'migration_df' is the DataFrame object containing the source, destination, and rate (M) for all migration events.
 
     the function writes a 'bpp --simulate' control file to disk specifying the parmeters of the simulation. 
     All populations in the simulation generate two sequences, as this facilitates the estiamtion of the gdi from gene trees 
-    (performed in 'gdi_genetree').
+    (performed in 'get_gdi_from_sim').
     '''
 
     # get tree object needed to create simulation 
@@ -171,10 +107,14 @@ def create_simulate_cfile(
         myfile.write(mig_events)
 
 
-# function handling the bpp --simulate aspect of the process
+
 def run_BPP_simulate(
-        control_file,  
-        ):
+        control_file:   BppCfile,  
+        ) ->            None: # handles the bpp subprocess
+    
+    '''
+    Use 'bpp --simulate' to sample gene trees from a given MSC+M model
+    '''
 
     print(f"\ninferring gdi using gene tree simulation...", end="\r")
 
@@ -202,9 +142,13 @@ def run_BPP_simulate(
 # final wrapper function to simulation gene trees according to the given MSC+M model
 def genetree_simulation(
         tree:           Tree, 
-        mode, 
-        migration_df
-        ) ->            list[str]: 
+        mode:           AlgoMode, 
+        migration_df:   MigrationRates
+        ) ->            GeneTrees: 
+
+    '''
+    Handle the file system operations, and bpp control file creation to simulate gene trees. Return the gene trees as a list
+    '''
 
     os.mkdir('genetree_simulate')
     os.chdir('genetree_simulate')
@@ -219,3 +163,44 @@ def genetree_simulation(
     os.chdir('..')
 
     return genetree_lines
+
+
+def get_gdi_from_sim(
+        node:           TreeNode, 
+        genetree_lines: GeneTrees
+        ) ->            gdi:
+    
+    '''
+    Get the gdi of a given TreeNode from the simulated data.
+
+    The gdi is defined as "the probability that the first coalescence is between the two A sequences and it happens before 
+    reaching species divergence when we trace the genealogy backwards in time"
+
+    This definition allows us to estimate the gdi from simulated gene tree topologies. After simulating many genetrees for a 
+    fully specified MSC+M model with two sequences per population, the gdi of a given population can be estimated by counting '
+    the proportion of genetrees where the two sequences from the population coalesce before reaching the divergence time between
+    that population and its sister node.
+    '''
+
+    node_name:str = node.name
+    ancestor:TreeNode = node.up; tau_AB:float = ancestor.tau
+
+    # create the regex corresponding to the required topology
+    correct_genetree = f'\({str(node_name).lower()}[12]\^{node_name}[:][0][.][\d]#,{str(node_name).lower()}[12]\^{node_name}:[0][.][\d]#\)'
+    correct_genetree = re.sub('#', '{6}', correct_genetree) # this is needed due to no '{''}' characters being allowed within f strings
+    
+    # find all occurrences of the correct topology
+    genetrees = [re.search(correct_genetree, element) for element in genetree_lines]
+    genetrees = [element.group(0) for element in genetrees if element]
+
+    # isolate the time at which each correct topology is achieved
+    num_match = (re.search('0.\d{6}', genetrees[0])); num_start = num_match.span()[0]; num_end = num_match.span()[1]
+    times = [float(element[num_start:num_end]) for element in genetrees]
+
+    # isolate the ocurrences that are after the split time for the populations
+    before_split = [element for element in times if element < tau_AB]
+
+    # gdi is the proportion of the loci where this topology is observed
+    node_gdi = len(before_split)/len(genetree_lines)
+
+    return round(node_gdi, 2)

@@ -5,6 +5,7 @@ MAIN HHSD SCRIPT
 from sys import argv
 import sys
 
+from .classes import CfileParam, BppCfileParam, Cfile
 from .module_HA import HA_iteration, check_contintue, set_starting_state
 from .module_bpp import bppctl_init
 from .module_tree import init_tree
@@ -16,18 +17,18 @@ from .module_helper import output_directory
 
 # main wrapper function implementing pipeline functions
 def hhsd(
-        cf_path,
+        cf_path: Cfile,
         cf_override
         ):
 
     # read control file
-    cf = ingest_cf(cf_path, cf_override)
+    cf:CfileParam = ingest_cf(cf_path, cf_override)
 
     # set up the output directory
     output_directory(cf['output_directory'])
 
     # intialise bpp control file 
-    bpp_ctl = bppctl_init(cf)
+    bpp_ctl:BppCfileParam = bppctl_init(cf)
 
     # read in essential data
     imap = imapfile_read(imap_filename=cf['Imapfile'], output_type="popind")

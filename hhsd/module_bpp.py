@@ -3,12 +3,15 @@ FUNCTIONS REQUIRED TO INTERACT WITH BPP
 '''
 
 import subprocess
-import pandas as pd
 import re
 import random
 import sys
 import time
+from copy import deepcopy
+from typing import Tuple, Optional
+import pandas as pd
 
+from .classes import CfileParam, BppCfileParam, BppCfile, BppOutfile, NodeName, NumericParamEstimates, MigrationRates
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path, format_time
 from .module_msa_imap import auto_prior, auto_nloci
 
@@ -26,7 +29,7 @@ def format_float(value):
 
 
 # contains the list of parameters that need to be present in a BPP control file
-default_BPP_cfile_dict = {
+default_BPP_cfile_dict:BppCfileParam = {
     'seed':                 None,
     'seqfile':              None, 
     'Imapfile':             None, 
@@ -53,25 +56,21 @@ default_BPP_cfile_dict = {
     'migprior':             None,
 }
 
-# initialize state of bpp control dict based on mcf parameters, and generate parameters automatically if none are supplied
-
 def bppctl_init(
-        mcf_parameters: dict
-        ) -> dict:
+        cf_param:   CfileParam
+        ) ->        BppCfileParam:
 
     '''
-    Runs at the start of the pipeline. Sets up BPP parameters that will be shared throughout the iterations.
-
-    1) collects parameters of BPP that can be set through the master control file (eg 'seed', 'threads'...)
-
+    Runs at the start of the pipeline. Sets up BPP parameters that will be shared throughout the iterations.\\
+    1) collects parameters of BPP that can be set through the control file (eg 'seed', 'threads'...)
     2) generates certain parameters that are needed for BPP to run, but not supplied.
-        - seed is generated as a random int
-        - nloci is the number of loci present in the MSA
-        - tau and theta priors are inferred from the MSA and the delimitaiton, using the method of Bruce Rannala
+    - seed is generated as a random int
+    - nloci is the number of loci present in the MSA
+    - tau and theta priors are inferred from the MSA and the delimitaiton, using the method of Bruce Rannala
     '''
 
     # ingest parameters from the mcf
-    bpp_cdict = dict_merge(default_BPP_cfile_dict, mcf_parameters)
+    bpp_cdict:BppCfileParam = dict_merge(default_BPP_cfile_dict, cf_param)
 
     # generate values for parameters if not supplied
         # seed
@@ -84,7 +83,7 @@ def bppctl_init(
         
         # tau and theta priors
     if bpp_cdict['tauprior'] == None or bpp_cdict['thetaprior'] == None:
-        priors = auto_prior(imapfile=bpp_cdict['Imapfile'], seqfile=bpp_cdict['seqfile'], tree_newick=mcf_parameters['guide_tree'])
+        priors = auto_prior(imapfile=bpp_cdict['Imapfile'], seqfile=bpp_cdict['seqfile'], tree_newick=cf_param['guide_tree'])
         if bpp_cdict['tauprior']   == None:
             bpp_cdict['tauprior']   = priors['tauprior']
         if bpp_cdict['thetaprior'] == None:
@@ -93,17 +92,19 @@ def bppctl_init(
 
     return bpp_cdict
 
-# write dict representing the BPP ".ctl" file to a text file
 def bppcfile_write(
-        input_dict, 
-        ctl_file_name
-                    ):
-
+        bpp_param:      BppCfileParam, 
+        ctl_file_name:  str
+        ) ->            None: # writes bpp control file to disk
+    
+    '''
+    Write dict representing the BPP ".ctl" file to a text file.
+    '''
     # remove parameters without values
-    input_dict = {item:input_dict[item] for item in input_dict if input_dict[item] != None}
+    bpp_param = {item:bpp_param[item] for item in bpp_param if bpp_param[item] != None}
 
     # convert to pandas dataframe
-    df = pd.DataFrame(list(input_dict.items()))
+    df = pd.DataFrame(list(bpp_param.items()))
     
     # write dataframe to disk
     df.to_csv(ctl_file_name, sep = "=", header = False, index = False)
@@ -119,8 +120,8 @@ def bppcfile_write(
 
 # run BPP with a given control file, and capture the stdout results
 def run_BPP_A00(
-        control_file,  
-        ):
+        control_file:   BppCfile,  
+        ) ->            None: # handles the bpp subprocess
 
     '''
     Handles the starting and stopping of the C program BPP, which is used to infer MSC parameters. 
@@ -147,7 +148,6 @@ def run_BPP_A00(
             ) 
     
         # monitors the output of the process
-        elapsed = "0:00"
         while True:
             time.sleep(0.01)
             realtime_output = process.stdout.readline()
@@ -229,10 +229,14 @@ Node (+1)       Tau      Theta    Label
 '''
 
 
-# get a dict of the numerical+string names to string names (see lines above)
 def get_node_number_map(
-        BPP_outfile,                    
-        ):
+        BPP_outfile:    BppOutfile,                    
+        ) ->            Tuple[dict, dict]:
+    
+    '''
+    Get a dict of the numerical+string names to string names for each node in the tree.\\
+    This is used to map parameter values in the outfile to their specific nodes.
+    '''
 
     lines = readlines(BPP_outfile)
     relevant_index = lines.index("List of nodes, taus and thetas:") # find the line where the node labels are listed
@@ -246,10 +250,13 @@ def get_node_number_map(
 
     return map_dict_long, map_dict_numeric
 
-# extract the mean and 95% hpds for all parameters from the outfile
 def extract_param_estimate_from_outfile(
-        BPP_outfile,
-        ) -> dict:
+        BPP_outfile:    BppOutfile,
+        ) ->            NumericParamEstimates:
+
+    '''
+    Extract the mean and 95% hpds for all parameters from the outfile.
+    '''
 
     map_dict_long, map_dict_numeric = get_node_number_map(BPP_outfile)
 
@@ -293,25 +300,28 @@ def extract_param_estimate_from_outfile(
         param_hpd_95.append((float(hpd_bottom), float(hpd_top)))
 
     # format the lists into the dataframe
-    estimated_param_df = pd.DataFrame({
+    numeric_param = pd.DataFrame({
         'type':param_types,
         'node':param_nodes,
         'mean':param_means,
         'hpd_95':param_hpd_95
     })
 
-    return estimated_param_df
+    return numeric_param
 
 
-# get a dict of node names:tau values and node names:theta values from the BPP outfile
 def extract_tau_theta_values(
-        estimated_param_df: pd.DataFrame,                    
-        ) -> tuple[dict[str, float], dict[str, float]]:
+        numeric_param:  NumericParamEstimates,                    
+        ) ->            Tuple[dict[NodeName, float], dict[NodeName, float]]:
 
-    tau_mean_dict = estimated_param_df.query("`type` == 'tau'").set_index('node')['mean'].to_dict()
-    tau_hpd_dict = estimated_param_df.query("`type` == 'tau'").set_index('node')['hpd_95'].to_dict()
-    theta_mean_dict = estimated_param_df.query("`type` == 'theta'").set_index('node')['mean'].to_dict()
-    theta_hpd_dict = estimated_param_df.query("`type` == 'theta'").set_index('node')['hpd_95'].to_dict()
+    '''
+    Get a dict of node names:tau values and node names:theta values from the BPP outfile
+    '''
+
+    tau_mean_dict = numeric_param.query("`type` == 'tau'").set_index('node')['mean'].to_dict()
+    tau_hpd_dict = numeric_param.query("`type` == 'tau'").set_index('node')['hpd_95'].to_dict()
+    theta_mean_dict = numeric_param.query("`type` == 'theta'").set_index('node')['mean'].to_dict()
+    theta_hpd_dict = numeric_param.query("`type` == 'theta'").set_index('node')['hpd_95'].to_dict()
 
     # create dataframe
     df = pd.DataFrame.from_dict([theta_mean_dict, theta_hpd_dict, tau_mean_dict, tau_hpd_dict])
@@ -329,40 +339,41 @@ def extract_tau_theta_values(
     return tau_mean_dict, theta_mean_dict
 
 
-# read the resulting migration rates from the outfile, and return them as a pandas dataframe
 def extract_mig_param_to_df(
-        estimated_param_df: pd.DataFrame,
-        mig
-        ):
+        numeric_param:  NumericParamEstimates,    
+        ) ->            Optional[MigrationRates]:
     
-    # only execute if migration was inferred
-    if mig is not None:
+    '''
+    Read the migration rate parameter estimates from the outfile, and return them as a pandas dataframe
+    '''
+    
+    df = numeric_param.copy()
+    df = df[df['type'] == 'M']
+    
+    # if no migration patterns were inferred, return None
+    if len(df) == 0:
+        return None
 
-        df = estimated_param_df.copy()
-        df = df[df['type'] == 'M']
+    # otherwise get the migration rates
+    else:
+        df.drop('type', axis=1, inplace=True)
+
+        # split 'node' into 'source' and 'destination'
+        df['source'] = df['node'].apply(lambda x: x.split('->')[0])
+        df['destination'] = df['node'].apply(lambda x: x.split('->')[1])
+        df = df[['source', 'destination', 'mean', 'hpd_95']]
+        df.rename(columns={'mean': 'M', 'hpd_95': '  '}, inplace=True)
+
+        # write to disk
+        df.to_csv("estimated_M.csv", index=False)
+
+        # format for printing, and print to screen
+        print_df = deepcopy(df)
+        print("\nEstimated migration rates:\n")
+        for col in print_df.columns: print_df[col] = print_df[col].apply(format_float)
+        print(print_df.to_string(index=False, max_colwidth=36, justify="start"))
+
+        # format by removing hpd column before returning
+        df.drop('  ', axis=1, inplace=True)
         
-        # check if there are any migration parameters
-        if len(df) == 0:
-            return None
-
-        else:
-            df.drop('type', axis=1, inplace=True)
-
-            # split 'node' into 'source' and 'destination'
-            df['source'] = df['node'].apply(lambda x: x.split('->')[0])
-            df['destination'] = df['node'].apply(lambda x: x.split('->')[1])
-            df = df[['source', 'destination', 'mean', 'hpd_95']]
-            df.rename(columns={'mean': 'M', 'hpd_95': '  '}, inplace=True)
-
-            # write to disk
-            df.to_csv("estimated_M.csv", index=False)
-
-            # format for printing, and print to screen
-            print("\nEstimated migration rates:\n")
-            for col in df.columns: df[col] = df[col].apply(format_float)
-            print(df.to_string(index=False, max_colwidth=36, justify="start"))
-
-            # format by removing hpd column before returning
-            df.drop('  ', axis=1, inplace=True)
-            
-            return df
+        return df

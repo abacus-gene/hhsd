@@ -2,23 +2,31 @@
 FUNCTIONS FOR CALCULATING THE GDI NUMERICALLY
 '''
 
+from .classes import gdi, MigrationRates
+from .module_ete3 import TreeNode
+
 import numpy as np
 from scipy.linalg import expm
 from scipy.integrate import quad
 
-# numerically calculate the gdi for pairs with reciprocal or no migration.
-def gdi_numeric(
-        theta_A,
-        theta_B,
-        tau_AB,
-        M_AB,
-        M_BA
-        ):
 
-    wAB = (4*M_AB)/theta_B   # often used entries
-    wBA = (4*M_BA)/theta_A
+def gdi_numeric(
+        theta_A:    float,
+        theta_B:    float,
+        tau_AB:     float,
+        M_AB:       float,
+        M_BA:       float
+        ) ->        gdi:
+
+    '''
+    Numerically calculate the gdi for node pairs with reciprocal migration or no migration.
+    '''
+
     cA = 2/theta_A
     cB = 2/theta_B
+    wAB = (4*M_AB)/theta_B   # often used entries
+    wBA = (4*M_BA)/theta_A
+    
 
     # some rate matrix diagonals that are set up to make the rows sum to 0
     r01 = -3*(cA + wBA)       
@@ -97,14 +105,17 @@ def gdi_numeric(
     # print (prob_coalescence_in_pop_A + prob_coalescence_in_pop_B)
 
 
-# wrapper function for getting adapting the numeric gdi function to the tree datastructure
 def get_gdi_numerical(
-        node,
-        migration_df
-        ):
+        node:           TreeNode,
+        migration_df:   MigrationRates
+        ) ->            gdi:
+    
+    '''
+    Get the gdi of a given leaf node in the Tree object.
+    '''
 
-    sister_node   = node.get_sisters()[0]
-    ancestor_node = node.up
+    sister_node:TreeNode   = node.get_sisters()[0]
+    ancestor_node:TreeNode = node.up
 
     # try accepts are for cases where one or both populations do not have migration to the other
     try:

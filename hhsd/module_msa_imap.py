@@ -8,22 +8,28 @@ import re
 from collections import Counter
 from itertools import combinations
 from itertools import product
+from typing import Literal, Union, Dict
 
 import numpy as np
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
 
+from .classes import ImapIndPop, ImapPopInd, Filename, NodeName, CfileParam, NewickTree
 from .module_helper import readlines, remove_empty_rows
 from .data_dicts import distance_dict, avail_chars
 from .module_tree import get_first_split_populations
 
 ## IO HELPER FUNCTIONS
 
-# read imap text file into various dictionary forms
+
 def imapfile_read(
-        imap_filename,
-        output_type, 
-        ):
+        imap_filename:      Filename,
+        output_type:        Literal['indpop','popind',], 
+        ) ->                Union[ImapIndPop, ImapPopInd]:
+
+    '''
+    Read the imap text file into various dictionary forms.
+    '''
 
     # ingest the imap file and remove all empty rows
     imap_rows = readlines(imap_filename)
@@ -50,11 +56,14 @@ def imapfile_read(
 
     return out
 
-# write an imap dict to a text file
 def imapfile_write(
-        input_indpop_dict,
-        imap_filename,
+        input_indpop_dict:  ImapIndPop,
+        imap_filename:      Filename,
         ):
+    
+    '''
+    Write an imap dict to a text Imap file.
+    '''
 
     rows = [f"{individual}\t{input_indpop_dict[individual]}" for individual in input_indpop_dict]
     output_file = '\n'.join(rows)
@@ -62,10 +71,14 @@ def imapfile_write(
     with open(imap_filename, 'w') as f:
         f.write(output_file)
 
-# return a properly filtered BioPython MSA object when pointed to a valid alignment file
+
 def alignfile_to_MSA(
-        align_file
-        ) -> list[MultipleSeqAlignment]:
+        align_file:         Filename
+        ) ->                list[MultipleSeqAlignment]:
+
+    '''
+    Return a properly filtered BioPython MSA object when pointed to a valid alignment file
+    '''
 
     align_raw = readlines(align_file)
     
@@ -94,12 +107,10 @@ def alignfile_to_MSA(
 
 ## FUNCTIONS FOR GENERATING THE SPECIES&TREE LINES OF THE BPP CONTROL FILE
 
-# return a dict containing the maximum number of sequences at any loci for each population
-
 def count_seq_per_pop(
-        indpop_imap, 
-        input_MSA_list: list[MultipleSeqAlignment]
-        ) -> dict:
+        indpop_imap:        ImapIndPop, 
+        input_MSA_list:     list[MultipleSeqAlignment]
+        ) ->                Dict[NodeName, int]:
 
     '''
     This function counts the maximum number of sequences at a single loci that are associated with a 
@@ -125,15 +136,14 @@ def count_seq_per_pop(
     
     return maxcounts
 
-# generate the lines of the bpp control file corresponding to population numbers and sizes
-
 def auto_pop_param(
-        indpop_imap, 
-        seqfile,
-        phase, 
-        ):
+        indpop_imap:        ImapIndPop, 
+        seqfile:            Filename,
+        phase:              Literal[0, 1], 
+        ) ->                CfileParam:
 
     '''
+    Generate the lines of the bpp control file corresponding to population numbers and sizes.
     This function reads the alignment and the IMAP. It then extracts the population labels, and uses "count_Seq_Per_Pop" 
     to count the number of  sequences associated with that population in the alignment. This data is then formatted to 
     comply with the "species&tree" row of the BPP control file.
@@ -167,10 +177,13 @@ def auto_pop_param(
 
     return rows
 
-# count the number of loci in the alignment
 def auto_nloci(
-        seqfile
-        ):
+        seqfile:        Filename
+        ) ->            int:
+
+    '''
+    Count the number of loci in the alignment
+    '''
 
     alignment = alignfile_to_MSA(seqfile)
     nloci = str(len(alignment))
@@ -352,10 +365,10 @@ def distance_between_pop(alignment, indpop_dict, pop_l, pop_r):
 # automatically generates the tau and theta prior lines of the BPP control file
 
 def auto_prior(
-        imapfile,
-        seqfile,
-        tree_newick,
-        ):
+        imapfile:       Filename,
+        seqfile:        Filename,
+        tree_newick:    NewickTree,
+        ) ->            CfileParam:
 
     """
     'imapfile' is the path to the Imap file, which specifies the mapping of individuals to populations

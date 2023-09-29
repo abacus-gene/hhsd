@@ -5,11 +5,13 @@ EXECUTE A GIVEN ITERATION OF THE ITERATIVE DELIMITATION ALGORITHM
 import copy
 import os
 
+from .classes import AlgoMode, CfileParam, BppCfileParam, MigrationPattern
+from .module_ete3 import Tree
 from .module_msa_imap import auto_pop_param, imapfile_write
 from .module_helper import dict_merge
 from .module_tree import get_attribute_filtered_imap, get_attribute_filtered_tree, get_current_leaf_species, add_attribute_tau_theta
 from .module_bpp import bppcfile_write, run_BPP_A00, extract_param_estimate_from_outfile, extract_tau_theta_values, extract_mig_param_to_df
-from .module_gdi_decision import tree_modify, calculate_gdi
+from .module_gdi_decision import tree_modify_delimitation, calculate_gdi
 from .module_migration import append_migrate_rows
 
 
@@ -17,9 +19,9 @@ from .module_migration import append_migrate_rows
 
 
 def set_starting_state(
-        tree,
-        algorithm_direction,
-        ):
+        tree:   Tree,
+        mode:   AlgoMode,
+        ) ->    Tree:
     
     '''
     Runs before the iterations of the HM algorithm, and sets the starting species delimitation.
@@ -32,17 +34,17 @@ def set_starting_state(
     print('\n< Analysis started >\n')
     
     # in "merge" mode, all starting populations are initally accepted as species
-    if algorithm_direction == "merge":
+    if mode == "merge":
         for node in tree.search_nodes(node_type="population"): node.add_features(species = True,)
     
     # in "split" mode, only the root node is initally accepted as species
-    if algorithm_direction == "split":
+    if mode == "split":
         for node in tree.search_nodes(node_type="population"): node.add_features(species = False,) 
         root_node = tree.get_tree_root()
         root_node.species = True
 
     # print feedback about starting state
-    print(f"*** Starting state of {algorithm_direction} analysis ***\n")
+    print(f"*** Starting state of {mode} analysis ***\n")
     print(f"Number of species in starting delimitation:  {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
     print(get_attribute_filtered_tree(tree, "species", newick=False))
@@ -51,9 +53,9 @@ def set_starting_state(
 
 
 def set_tree_proposal_attributes(
-        tree,
-        mode
-        ):
+        tree: Tree,
+        mode: AlgoMode
+        ) ->  Tree:
     
     '''
     Propose modifications to the topology by identifying the nodes whose species status will be assesed.
@@ -116,14 +118,14 @@ def set_tree_proposal_attributes(
 
 
 def proposal_setup_files(
-        tree,
-        bpp_cdict,
-        mode,
-        migration,
-        ):
+        tree:       Tree,
+        bpp_cdict:  BppCfileParam,
+        mode:       AlgoMode,
+        migration:  MigrationPattern,
+        ) ->        None: # writes files to disk
     
     '''
-    Write the imap file and control file needed to evaluate a given proposal
+    Write the imap file and bpp control file needed to evaluate a given proposal
     '''
 
     # set up and write imap needed to evaluate proposal
@@ -140,19 +142,17 @@ def proposal_setup_files(
     
     # add-on migration parameters to the control file, if migration patterns are specified
     if str(type(migration)) != "<class 'NoneType'>":
-        append_migrate_rows(tree, mode, "proposed_ctl.ctl", migration)
-
-    return tree
+        append_migrate_rows(tree, migration, "proposed_ctl.ctl")
 
 
 def HA_iteration(
-        tree, 
-        bpp_cdict, 
-        cf_dict
-        ):
+        tree:       Tree, 
+        bpp_cdict:  BppCfileParam, 
+        cf_dict:    CfileParam
+        ) ->        Tree:
     
     '''
-    Important function implementing each iteration of the Hierarchical algorithm
+    Important function implementing each iteration of the Hierarchical merge/split algorithm
     '''
 
     # increment iteration count
@@ -172,18 +172,18 @@ def HA_iteration(
     
     # run BPP and capture the output
     run_BPP_A00("proposed_ctl.ctl")
-    estimated_param_df = extract_param_estimate_from_outfile(BPP_outfile="proposal_bpp_out.txt")
-    tau_theta_values = extract_tau_theta_values(estimated_param_df)
-    migration_df     = extract_mig_param_to_df (estimated_param_df, mig = cf_dict['migration'])
+    estimated_param  = extract_param_estimate_from_outfile(BPP_outfile="proposal_bpp_out.txt")
+    tau_values, theta_values = extract_tau_theta_values(estimated_param)
+    migration_df     = extract_mig_param_to_df(estimated_param)
 
     # append the inferred numeric parameters to the tree
-    tree = add_attribute_tau_theta(tree, tau_theta_values)
+    tree = add_attribute_tau_theta(tree, tau_values, theta_values)
 
     # get gdi via calculations or simulations, and append results to the tree
     tree = calculate_gdi(tree, cf_dict['mode'], migration_df)
 
     # make decision based on results
-    tree = tree_modify(tree, cf_dict)
+    tree = tree_modify_delimitation(tree, cf_dict)
 
     # move back into working directory
     os.chdir("..")
@@ -193,9 +193,9 @@ def HA_iteration(
 
 # should the program move to the next HM iteration?
 def check_contintue(
-        tree,
-        cf_dict
-        ):
+        tree:       Tree,
+        cf_dict:    CfileParam
+        ) ->        bool:
 
     '''
     Runs after each iteration of the hierarchical method, and checks if further iterations can be run, 

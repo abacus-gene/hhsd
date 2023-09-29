@@ -3,27 +3,33 @@ FUNCTIONS RELATED TO READING, MODIFYING, AND WRITING TREE DATA STRUCTURES
 '''
 
 import copy
+from typing import Literal, Union, Tuple, List, Dict
 
-from .module_ete3 import Tree
+from .classes import NodeName, NewickTree, ImapPopInd, ImapIndPop, AlgoMode, gdi
+from .module_ete3 import Tree, TreeNode
 from .module_helper import flatten
 
 
-# small wrapper function that returns an ete3 tree in a newick formatted string
 def tree_to_newick  (
-        tree: Tree
-        ):
+        tree:           Tree
+        ) ->            NewickTree:
+    
+    '''
+    small wrapper function that returns an ete3 tree in a newick formatted string
+    '''
 
     return tree.write(format=9)
 
 ## FUNCTIONS FOR INITIALIZING THE MAIN TREE OBJECT BASED ON THE DATA PROVIDED BY THE USER
-
-# takes a tree where only leaf nodes are named, and names all internal nodes
-'''The naming of internal nodes is accomplished by combining the names of the descendant nodes. 
-This is done from leaf to root. e.g. leaf nodes 'A' & 'B' will have ancestor 'AB' '''
-
 def name_internal_nodes(
-        tree: Tree
-        ) -> Tree:
+        tree:   Tree
+        ) ->    Tree:
+
+    '''
+    Takes a tree where only leaf nodes are named, and names all internal nodes. \\
+    This is accomplished by combining the names of the descendant nodes. \\
+    This is done from leaf to root. e.g. leaf nodes 'A' & 'B' will have ancestor 'AB'
+    '''
 
     for node in tree.traverse("postorder"):
         if len(node.name) == 0:
@@ -35,30 +41,38 @@ def name_internal_nodes(
     
     return tree
 
-# based on the imap, add individuals from each population as child nodes with attribute "individual_node"
 def add_individuals_to_tree(
-        pop_tree: Tree,
-        imap_popind_dict,
-        ) -> Tree:
+        pop_tree:       Tree,
+        imap_popind:    ImapPopInd,
+        ) ->            Tree:
+    
+    '''
+    Based on the imap, add individuals from each population as child nodes (with attribute "individual_node") to the leaf population nodes. 
+    '''
     
     # iterate through each population
-    for pop_name in imap_popind_dict:
+    for pop_name in imap_popind:
         # begin by finding the guide tree node with the name matching the population
         pop_node = list(filter(lambda n: n.name == pop_name and n.node_type == "population", pop_tree.traverse()))[0]
         
         # iterate through each individual in the population, and add as a child
-        for ind_name in imap_popind_dict[pop_name]: pop_node.add_child(name = ind_name)
+        for ind_name in imap_popind[pop_name]: pop_node.add_child(name = ind_name)
         
         # add child attribute to resulting nodes
         for child_node in pop_node.iter_descendants(): child_node.add_features(node_type = "individual",)
 
     return pop_tree
 
-# wrapper function that returns a guide+individuals tree
+
 def init_tree(
-        tree_newick,
-        imap_popind,
-        ) -> Tree:
+        tree_newick:    NewickTree,
+        imap_popind:    ImapPopInd,
+        ) ->            Tree:
+
+    '''
+    Initialize the Tree object, based on the 'guide_tree' parameter, 
+    and add individuals from the 'Imapfile' onto the tree as child nodes of their parent populations.
+    '''
 
     # ingest newick and turn into ete3 tree
     tree_out = Tree(newick = tree_newick)
@@ -79,20 +93,19 @@ def init_tree(
 
 ## FUNCTIONS FOR OUTPUTTING DIFFERENT TYPES OF DATA BASED ON THE CURRENT STATE OF THE TREE
 
-# filter the tree to only include nodes with certain attributes
-'''
-This function is used to filter the full tree datastructure to only include certain nodes. Use cases include:
-1) Filtering for only accepted species, which can be done at the end of an iteration
-2) Filtering nodes such that the tree used to evaluate split proposals is output, 
-   this is done at the begenning of a split iteration
-3) Filtering for populations only. This is useful whenever the guide tree needs to be accessed
-'''
 def get_attribute_filtered_tree(
-        tree: Tree,
-        attribute,
-        newick = True, #returns a newick representation of the filtered tree by default, but can also be used to return the full tree object
-        ):
+        tree:           Tree,
+        attribute:      Literal['merge','split','population'],
+        newick =        True, #returns a newick representation of the filtered tree by default, but can also be used to return the full tree object
+        ) ->            Union[NewickTree, Tree]:
     
+    '''
+    This function is used to filter the full tree datastructure to only include certain nodes. Use cases include:
+    1) Filtering for only accepted species, which can be done at the end of an iteration
+    2) Filtering nodes such that the tree used to evaluate split proposals is output, this is done at the begenning of a split iteration
+    3) Filtering for populations only. This is useful whenever the guide tree needs to be accessed
+    '''
+
     copy_tree = copy.deepcopy(tree)
 
     # filter to currently accepted species. This is also utilized as the proposal for merge mode
@@ -123,13 +136,19 @@ def get_attribute_filtered_tree(
     elif newick == False:
         return copy_tree
 
-# for each individual, find the first population node relevant to the current problem
+
 def get_attribute_filtered_imap(
-        tree,
-        attribute,
-        ):
+        tree:           Tree,
+        attribute:      Literal['merge','split','species'],
+        ) ->            ImapIndPop:
     
-    indpop_dict = {}
+    '''
+    For each individual in the input 'Imapfile', find the first population node relevant to the current problem. This can be:
+    1) The population the individual would be assigned to under a merge or split proposal 
+    2) The currently accepted species the individual is mapped to
+    '''
+    
+    indpop_dict:ImapIndPop = {}
     
     # isolate individual nodes 
     for node in tree.search_nodes(node_type="individual"):
@@ -151,28 +170,37 @@ def get_attribute_filtered_imap(
 
     return indpop_dict
 
-# get the list of currently accepted species nodes that are also leaves
 def get_current_leaf_species(
-        tree,
-        ):
+        tree:           Tree,
+        ) ->            List[NodeName]:
 
-        copy_tree = get_attribute_filtered_tree(tree, "species", newick=False)
-        leaf_names = [leaf.name for leaf in copy_tree]
+    '''
+    Get the list of currently accepted species nodes that are also leaves.
+    '''
 
-        return leaf_names
+    copy_tree = get_attribute_filtered_tree(tree, "species", newick=False)
+    leaf_names = [leaf.name for leaf in copy_tree]
 
-# get the iteration from the 'iteration' attribute located on the root node
+    return leaf_names
+
 def get_iteration(
         tree:   Tree
         ) ->    int:
+    
+    '''
+    get the iteration from the 'iteration' attribute located on the root node
+    '''
 
     root = tree.get_tree_root()
     return root.iteration    
 
-# get the list of all populations including internal nodes based on a newick tree
 def get_all_populations(
-        tree_newick,
-        ):
+        tree_newick:    NewickTree,
+        ) ->            List[NodeName]:
+    
+    '''
+    Get the list of all populations including internal nodes based on a newick tree.
+    '''
         
     tree_out = Tree(newick = tree_newick)
     tree_out = name_internal_nodes(tree_out)
@@ -180,10 +208,13 @@ def get_all_populations(
 
     return population_names
 
-# get the list of populations at the first split of the guide tree.
 def get_first_split_populations(
-        tree_newick,
-        ):
+        tree_newick:    NewickTree,
+        ) ->            Tuple[List[NodeName],List[NodeName]]:
+
+    '''
+    Get two lists for the guide tree leaf populations corresponding to the two first branches.
+    '''
 
     tree = Tree(newick = tree_newick)
     root = tree.get_tree_root(); children = root.get_descendants()
@@ -194,16 +225,20 @@ def get_first_split_populations(
 
     return pop_1, pop_2
 
-# get a list of node pairs to modify in certain ways
+
 def get_node_pairs_to_modify(
-        tree:                   Tree,
-        algorithm_direction
-        ):
+        tree:           Tree,
+        algo_mode:      AlgoMode
+        ) ->            List[Tuple[TreeNode, TreeNode]]:
+
+    '''
+    Get a list of node pairs to modify according to the merge or split proposal.
+    '''
 
     # search depending on mode
-    if   algorithm_direction == "merge":
+    if   algo_mode == "merge":
         node_pairs_to_modify = tree.search_nodes(proposal='merge')
-    elif algorithm_direction == "split":
+    elif algo_mode == "split":
         node_pairs_to_modify = tree.search_nodes(proposal='split')
     
     # split into pairs of nodes
@@ -213,26 +248,27 @@ def get_node_pairs_to_modify(
 
 
 ## FUNCTIONS FOR ADDING NUMERICAL NODE ATTRIBUTES (E.G. TAU OR M) INFERRED USING BPP TO THE TREE OBJECT
-# add tau and theta parameters inferred using A00 as node attributes
 def add_attribute_tau_theta(
-        tree,
-        tau_theta_values,
-        ):
+        tree:           Tree,
+        tau_values:     Dict[NodeName, float],
+        theta_values:   Dict[NodeName, float],
+        ) ->            Tree:
 
-    tau_values = tau_theta_values[0]
-    theta_values = tau_theta_values[1]
-
+    '''
+    Add tau and theta parameters inferred using A00 as node attributes.
+    '''
+    
     # add tau and theta attributes to all population nodes
     for node in tree.search_nodes(node_type="population"):
         # tau values are only available for non-leaf (ancestral) nodes.
         if node.name in list(tau_values.keys()):
-            node.add_features(tau = tau_values[node.name])
+            node.add_features(tau = float(tau_values[node.name]))
         else:
             node.add_features(tau = None)
         
         # theta values should be available for all nodes.
         if node.name in list(theta_values.keys()):
-            node.add_features(theta = theta_values[node.name])
+            node.add_features(theta = float(theta_values[node.name]))
         else:
             node.add_features(theta = None)
 
@@ -240,16 +276,20 @@ def add_attribute_tau_theta(
 
 # add the gdi attribute to specific nodes in the tree
 def add_attribute_gdi(
-        tree,
-        mode,
-        gdi_values,
-        ):
+        tree:           Tree,
+        mode:           AlgoMode,
+        gdi_values:     Dict[NodeName, gdi],
+        ) ->            Tree:
 
+    '''
+    Add inferred gdi values to the tree. 
+    '''
+    
     for node in tree.search_nodes(node_type="population"):        
         node.add_features(gdi = None)
 
     leaf_nodes = flatten(get_node_pairs_to_modify(tree, mode))
     for node in leaf_nodes:
-        node.gdi = gdi_values[node.name]
+        node.gdi = float(gdi_values[node.name])
 
     return tree

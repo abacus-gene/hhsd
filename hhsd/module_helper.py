@@ -168,7 +168,7 @@ def check_numeric(
         return False
 
 # get the closest matching parameter name from a list of valid values
-def param_name_match(
+def closest_param_match(
         paramname: str, 
         paramlist: list[str]
         ):

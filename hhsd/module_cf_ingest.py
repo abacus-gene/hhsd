@@ -2,17 +2,19 @@
 FUNCTIONS REQUIRED TO INGEST AND CHECK THE PARAMETERS OF THE CONTROL FILE PROVIDED MY THE USER.
 '''
 
-import pandas as pd
 import io
 import sys
 from collections import Counter
+from typing import Optional
+import pandas as pd
 
-from .module_helper import read_filter_comments, read_format_curlybrackets, stripall, dict_merge, param_name_match
+from .classes import CfileParam, Cfile
+from .module_helper import read_filter_comments, read_format_curlybrackets, stripall, dict_merge, closest_param_match
 from .module_check_helper_cf import check_output_dir, check_msa_file, check_imap_file, check_newick, check_imap_msa_compat, check_imap_tree_compat, check_can_infer_theta, check_mode, check_gdi_threshold, check_migration
 from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_migprior, check_phase
 
 # dictionary of CF parameters that are currently supported
-cf_param_dict =    {
+cf_param_dict:CfileParam = {
     # location of output 
     "output_directory"      :None,
     # data sources and empirical parameters
@@ -46,23 +48,25 @@ cf_param_dict =    {
 
 ## FUNCTIONS FOR READING AND PROCESSING THE CF INTO PYTHON COMPATIBLE OBJECTS
 
-# read the control file into a dataframe
 def read_cf_to_df(
-        cf_name,
-        ):
+        cf_name:    Cfile,
+        ) ->        pd.DataFrame:
+    '''
+    Read the control file and process into a dataframe
+    '''
     
     # strip out all comments from control file
     try:
         lines = read_filter_comments(cf_name)
         lines_text = "\n".join(lines)
     except:
-        sys.exit("Error: could not remove comments from control file.\nCheck formatting and refer to manual.")
+        sys.exit("ControlFileError: could not remove comments from control file.\nCheck formatting and refer to manual.")
     
     # format parameters bounded by '{}'
     try:
         lines_text = read_format_curlybrackets(lines_text)
     except:
-        sys.exit("Error: could not parse control file parameters delimited by '{' and '}'.\nCheck formatting and refer to manual.")
+        sys.exit("ControlFileError: could not parse control file parameters delimited by '{' and '}'.\nCheck formatting and refer to manual.")
 
     # read into dataframe
     try:
@@ -74,14 +78,18 @@ def read_cf_to_df(
         for col in df.columns:
             df[col] = df[col].map(stripall)
     except:
-        sys.exit("Error: could not parse control file\nCheck formatting and refer to manual.")
+        sys.exit("ControlFileError: could not parse control file\nCheck formatting and refer to manual.")
     
     return df
 
-# transform the dataframe into a dict 
+
 def cf_df_to_dict(
-        cf_df
-        ):
+        cf_df: pd.DataFrame
+        )   -> CfileParam:
+    
+    '''
+    Transform the dataframe of the control file into a 'CfileParam' dict.
+    '''
 
     # make dataframe a dict, and transform all types to string
     cfdict = cf_df.set_index('par').T.to_dict("records")[0]
@@ -98,54 +106,65 @@ def cf_df_to_dict(
 
 ## FUNCTION FOR CHECKING PARAMETER NAMES
 def verify_cf_parameter_names(
-        cf_file,
-        cf_override
-        ):
+        cf_file:        Cfile,
+        cf_override:    Optional[CfileParam]
+        ) ->            CfileParam:
 
     '''
     This function aims to ensure that the control file only contains calls
     to valid parameters of the pipeline, and does not have duplicate values. 
     '''
 
-    cf_df = read_cf_to_df(cf_file)
-    
-    # check if all parameters are from the known correct list
-    supplied_param = cf_df['par'].tolist()
     correct_param = list(cf_param_dict.keys())
 
+    
+    cf_df:pd.DataFrame = read_cf_to_df(cf_file)
+    supplied_param = cf_df['par'].tolist()
+
+    # check if all parameters are from the known correct list
     unmatched = set(supplied_param).difference(set(correct_param))
     if len(unmatched) > 0:
-        error_msg = "Error: unknown parameters in control file:"
-        for param in unmatched: error_msg += f"\n\t{param} {param_name_match(param, correct_param)}"
+        error_msg = "ControlFileError: unknown parameters:"
+        for param in unmatched: error_msg += f"\n\t{param} {closest_param_match(param, correct_param)}"
         sys.exit(error_msg)
     
-    # check for duplicate values
+    # check for duplicate parameter names
     counts = dict(Counter(supplied_param))
     if any(value > 1 for value in counts.values()):
-        error_msg = "Error: duplicate parameters in control file:\n\t"
+        error_msg = "ControlFileError: duplicate parameters:\n\t"
         error_msg += str([parameter for parameter in counts if counts[parameter] > 1])[1:-1]
         error_msg += "\ndelete or comment out lines with duplicate parameters"
         sys.exit(error_msg)
 
     # return cf dict if all the tests were passed
-    cf = cf_df_to_dict(cf_df)
+    cf:CfileParam = cf_df_to_dict(cf_df)
 
-    # TEMPORARY SOLUTION FOR OVERRIDE, FIX LATER TO ADD CHECKS
+    # read in and check parameters from the override
     if cf_override != None:
+        
+        # check if all parameters are from the known correct list
+        supplied_param = list(cf_override.keys())
+    
+        unmatched = set(supplied_param).difference(set(correct_param))
+        if len(unmatched) > 0:
+            error_msg = "ParameterOverrideError: unknown parameters:"
+            for param in unmatched: error_msg += f"\n\t{param} {closest_param_match(param, correct_param)}"
+            sys.exit(error_msg)
+
         cf = dict_merge(cf, cf_override)
 
     return cf
 
 
 
-####
-'''
-Checks all values provided in a control file to ensure that the program will not crash.
-If any of these checks do fail, the program will quit with an informative error message. 
-'''
 def cf_parameter_check(
-        cf
-        ):
+        cf:     CfileParam
+        ) ->    CfileParam:
+    
+    '''
+    Checks all values provided in a control file to ensure that the program will not crash.\\
+    If any of these checks do fail, the program will quit with an informative error message. 
+    '''
 
     #  Checking parameters of the control file (functions explained and implemented in 'module_check_helper_cf')
     cf['output_directory'] = check_output_dir(cf['output_directory'])
@@ -155,13 +174,13 @@ def cf_parameter_check(
     cf['Imapfile'] = check_imap_file(cf['Imapfile'])
     check_newick(cf['guide_tree'])
     
-        # compatibility checking of data
+    # compatibility checking of data
     check_imap_msa_compat(cf['Imapfile'], cf['seqfile'])
     check_imap_tree_compat(cf['Imapfile'], cf['guide_tree'])
     check_phase(cf['phase'])
     check_can_infer_theta(cf['Imapfile'], cf['seqfile'], cf['phase'],)
     
-        # check parameters of the hierarchical method
+    # check parameters of the hierarchical method
     check_mode(cf['mode'])
     cf['gdi_threshold'] = check_gdi_threshold(cf['gdi_threshold'], cf['mode'])
 
@@ -194,9 +213,13 @@ def cf_parameter_check(
 
 ## FINAL WRAPPER FUNCTION IMPLEMENTING READING AND CHECKING
 def ingest_cf(
-        cf_file,
-        cf_override
-        ):
+        cf_file:        Cfile,
+        cf_override:    Optional[CfileParam]
+        ) ->            CfileParam:
+    
+    '''
+    Ingest the control file (and the optional parameter overrides), and check the integrity of supplied parameters and values.
+    '''
 
     # verify that the cf only contains known parameters, and no duplicates
     cf = verify_cf_parameter_names(cf_file, cf_override)

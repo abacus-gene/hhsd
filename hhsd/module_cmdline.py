@@ -8,12 +8,13 @@ from pathlib import PurePath
 import sys
 import multiprocessing
 
+from .classes import Cfile, CfileParam
 from .module_helper import stripall
 
 
 # move to the directory where the pipeline is located.
 def resolve_cf_file(
-        filepath
+        filepath: Cfile
         ):
 
     '''
@@ -69,7 +70,7 @@ def categorise_arguments(
 
 def interpret_parameter_override(
         argument
-        ):
+        ) -> CfileParam:
 
     args_to_override = argument.split(",")
     
@@ -88,21 +89,21 @@ def cmdline_init(
     # check that the required arguments are provided
     arguments_dict = categorise_arguments(argument_list[1:])
 
-        # load splash text if no arguments are provided
+    # load splash text if no arguments are provided
     if len(arguments_dict) == 0 and "--cfile" not in argument_list:
         sys.exit(f"hhsd version 0.9.8\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
 
-        # check that the control file is specified
+    # check that the control file is specified
     if "--cfile" not in arguments_dict:
         sys.exit("MissingControlFileError: please specify control file as '--cfile name_of_control_file'")
     cf_path = arguments_dict['--cfile']
-    cf_path = resolve_cf_file(cf_path) # move to the directory where the cf is located
+    cf_path:Cfile = resolve_cf_file(cf_path) # move to the directory where the cf is located
 
     print("\n< Checking control file arguments... >\n")
 
         # check any parameter overrides
     if "--cfpor" in arguments_dict:
-        cf_override_dict = interpret_parameter_override(arguments_dict['--cfpor'])
+        cf_override_dict:CfileParam = interpret_parameter_override(arguments_dict['--cfpor'])
         print("The following control file parameters have been overridden via --cfpor:")
         for element in cf_override_dict: print(element, "=", cf_override_dict[element])
         print("\n")

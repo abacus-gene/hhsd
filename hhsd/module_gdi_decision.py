@@ -3,25 +3,30 @@ EVALUATION OF AND IMPLEMENTATION OF
 PROPOSED CHANGES TO THE SPECIES DELIMITAITON
 '''
 
-from typing import Literal, Dict, List
+
 
 import pandas as pd
+from typing import Dict
 
+from .classes import AlgoMode, CfileParam, gdi, NodeName, MigrationRates
 from .module_ete3 import Tree, TreeNode
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, add_attribute_gdi, get_attribute_filtered_imap, tree_to_newick
 from .module_helper import flatten
 from .module_migration import check_migration_reciprocal
 from .module_gdi_numeric import get_gdi_numerical
-from .module_gdi_simulate import genetree_simulation, get_gdi_simulation
+from .module_gdi_simulate import genetree_simulation, get_gdi_from_sim
 from .module_msa_imap import imapfile_write
 
 
-# calculate the gdi values for the node pairs to be modified, based on the results from the A00 analysis
 def get_gdi_values(
         tree:           Tree, 
-        mode:           Literal['merge','split'],
-        migration_df:   pd.DataFrame
-        ) ->            Dict[str, float]:
+        mode:           AlgoMode,
+        migration_df:   MigrationRates
+        ) ->            Dict[NodeName, gdi]:
+
+    '''
+    Calculate the gdi values for the node pairs to be modified numerically or via simulation
+    '''
 
     # get the mode pairs for which the gdi needs to be calculated
     node_pairs_to_mod = get_node_pairs_to_modify(tree, mode)
@@ -29,7 +34,7 @@ def get_gdi_values(
     # create empty list of gdi values for the relevant nodes
     gdi_values = {node.name:None for node in flatten(node_pairs_to_mod)}
 
-    # find the node pairs for which the gdi can be calculated numerically (they do not migrate or migrate between eachother)
+    # find the node pairs for which the gdi can be calculated numerically (they do not migrate or migrate only between eachother)
     for pair in node_pairs_to_mod:
         if check_migration_reciprocal(pair[0], pair[1], migration_df):
 
@@ -46,18 +51,22 @@ def get_gdi_values(
             # check that numerical values are not already present
             if (gdi_values[pair[0].name] == None) and (gdi_values[pair[1].name] == None):
 
-                gdi_values[pair[0].name] = get_gdi_simulation(pair[0], genetrees)
-                gdi_values[pair[1].name] = get_gdi_simulation(pair[1], genetrees)
+                gdi_values[pair[0].name] = get_gdi_from_sim(pair[0], genetrees)
+                gdi_values[pair[1].name] = get_gdi_from_sim(pair[1], genetrees)
 
 
     return gdi_values
 
-# final wrapper function implementing the simulation, inference, and writing of gdi values
+
 def calculate_gdi(
         tree:           Tree, 
-        mode:           Literal['merge','split'],
-        migration_df:   pd.DataFrame
+        mode:           AlgoMode,
+        migration_df:   MigrationRates
         ) ->            Tree: 
+
+    '''
+    Calculate gdi values and add them as attributes to the Tree
+    '''
 
     gdi_values = get_gdi_values(tree, mode, migration_df)
 
@@ -70,12 +79,16 @@ def calculate_gdi(
 
 # DECIDE WHETER TO ACCEPT OR REJECT PROPOSAL
 def node_pair_decision(
-        node_1:     TreeNode,
-        node_2:     TreeNode,
-        cf_dict:    dict
-        ) ->        None: # in-place modification of node attributes
+        node_1:         TreeNode,
+        node_2:         TreeNode,
+        cf_dict:        CfileParam
+        ) ->            None: # in-place modification of node attributes
 
-    mode = cf_dict['mode']
+    '''
+    Decide to accept or reject a merge/split proposal
+    '''
+
+    mode:AlgoMode = cf_dict['mode']
     gdi_threshold = cf_dict['gdi_threshold']
 
     if   mode == 'merge':
@@ -100,7 +113,7 @@ def node_pair_decision(
 def print_decision_feedback(
         node_pairs_to_modify,
         tree:                   Tree,
-        cf_dict:                dict
+        cf_dict:                CfileParam
         ) ->                    None: # prints to screen, and writes files
 
     '''
@@ -142,9 +155,9 @@ def print_decision_feedback(
 
 
 ## FINAL WRAPPER FUNCTION
-def tree_modify(
+def tree_modify_delimitation(
         tree:       Tree,
-        cf_dict:    dict,
+        cf_dict:    CfileParam,
         ) ->        Tree:     
 
     '''
@@ -153,7 +166,7 @@ def tree_modify(
     '''
 
     # get the node pairs where modifications are being proposed
-    node_pairs_to_modify = get_node_pairs_to_modify(tree, algorithm_direction=cf_dict['mode'])
+    node_pairs_to_modify = get_node_pairs_to_modify(tree, cf_dict['mode'])
 
     # modify node pairs according to criteria
     for pair in node_pairs_to_modify:
