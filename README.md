@@ -63,3 +63,6 @@ This simulated dataset was originally introduced in https://doi.org/10.1093/sysb
 hhsd --cfile cf_sim_merge.txt
 ```
 3) Inspect the output appearing in the command line, and the output files written to the `examples/simulated_abcdx/res_sim_merge` folder.
+
+## Further details
+Further details on the operation of the program, including best practices, and a detailed explanation of parameter syntax can be found in the manual.
