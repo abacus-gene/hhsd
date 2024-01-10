@@ -7,6 +7,8 @@ import copy
 import subprocess
 import os
 
+import numpy as np
+
 from .classes import BppCfile, BppCfileParam, GeneTrees, gdi, AlgoMode, MigrationRates
 from .module_ete3 import Tree, TreeNode
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path
@@ -201,6 +203,8 @@ def get_gdi_from_sim(
     before_split = [element for element in times if element < tau_AB]
 
     # gdi is the proportion of the loci where this topology is observed
-    node_gdi = len(before_split)/len(genetree_lines)
+    P1 = len(before_split)/len(genetree_lines)
 
-    return round(node_gdi, 2)
+    gdi = ((3*P1)-1)/2
+
+    return np.round(gdi, 2)
