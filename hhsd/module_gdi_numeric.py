@@ -81,23 +81,7 @@ def gdi_numeric(
         return prob_coalescence_in_pop_A + prob_coalescence_in_pop_B
 
     # integrate from 0 to tau_AB to get final probability of a1-a2 coalescence before tau_AB
-    eq10, err = quad(coalesce_prob_dens_at_tau, 0, tau_AB)
-
-    # Get probability of a1-a2 coalescence after tau_AB (ocurring in the common ancestor population)
-    def coalesce_prob_dens_after_tau(tau):
-
-        # exponentiate matrix
-        prob_matrix = expm((rate_matrix * tau))
-
-        return np.sum(prob_matrix[1,0:7])/3
-    
-    eq11 = coalesce_prob_dens_after_tau(tau_AB)
-
-    # P1 = eq10+eq11
-    P1 = eq10+eq11
-
-    # gdi = ((3*P1)-1)/2
-    gdi = ((3*P1)-1)/2
+    gdi, err = quad(coalesce_prob_dens_at_tau, 0, tau_AB)
 
     return np.round(gdi, 2)
 

@@ -203,8 +203,6 @@ def get_gdi_from_sim(
     before_split = [element for element in times if element < tau_AB]
 
     # gdi is the proportion of the loci where this topology is observed
-    P1 = len(before_split)/len(genetree_lines)
-
-    gdi = ((3*P1)-1)/2
+    gdi = len(before_split)/len(genetree_lines)
 
     return np.round(gdi, 2)
