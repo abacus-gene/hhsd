@@ -169,7 +169,7 @@ def cf_parameter_check(
     #  Checking parameters of the control file (functions explained and implemented in 'module_check_helper_cf')
     cf['output_directory'] = check_output_dir(cf['output_directory'])
 
-        # check data is of correct type
+    # check data is of correct type
     cf['seqfile']  = check_msa_file(cf['seqfile'])
     cf['Imapfile'] = check_imap_file(cf['Imapfile'])
     check_newick(cf['guide_tree'])
@@ -188,7 +188,6 @@ def cf_parameter_check(
     check_seed(cf['seed'])
     check_tauprior(cf['tauprior'])
     check_thetaprior(cf['thetaprior'])
-    #check_finetune(cf['finetune'])
     check_sampfreq(cf['sampfreq'])
     check_nsample(cf['nsample'])
     check_burnin(cf['burnin'])

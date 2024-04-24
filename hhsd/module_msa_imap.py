@@ -5,6 +5,7 @@ CONTENTS OF SEQUENCE ALIGNMENTS AND IMAP FILES.
 
 import io
 import re
+import sys
 from collections import Counter
 from itertools import combinations
 from itertools import product
@@ -32,27 +33,26 @@ def imapfile_read(
     '''
 
     # ingest the imap file and remove all empty rows
-    imap_rows = readlines(imap_filename)
-    imap_lines = remove_empty_rows(imap_rows)
+    imap_lines = remove_empty_rows(readlines(imap_filename))
 
     # create the list of individual IDs and population IDs
-    imap_indiv = ([i.split(None, 2)[0] for i in imap_lines])
-    imap_pop = ([i.split(None, 2)[1] for i in imap_lines])
+    imap_indiv  = ([i.split(None, 2)[0] for i in imap_lines])
+    imap_pop    = ([i.split(None, 2)[1] for i in imap_lines])
 
     # set up output type
-        
-        # dict with key = pop names, value = IDs in that pop
-    if output_type == "popind":
-        out = {}
+
+    # dict with key = individual ids, value = population assignments
+    if   output_type == "indpop":
+        out:ImapIndPop = dict(zip(imap_indiv, imap_pop))
+
+    # dict with key = pop names, value = IDs in that pop
+    elif output_type == "popind":
+        out:ImapPopInd = {}
         for index, label in enumerate(imap_pop):
             if label in out:
                 out[label].append(imap_indiv[index])
             else:
                 out[label] = [imap_indiv[index]]
-
-        # dict with key = individual ids, value = population assignments
-    elif output_type == "indpop":
-        out = dict(zip(imap_indiv, imap_pop))
 
     return out
 
@@ -329,7 +329,7 @@ def distance_within_pop(alignment, indpop_dict, population):
         return np.average(per_locus_dist, weights = per_locus_len)
     except:
         # this happens if only a single phased sequence is provided, then inter pop distance cannot be assessed
-        return None
+        sys.exit("AutoPriorError: Automatic inference of theta prior failed.\nProvide theta prior manually.")
 
 # measure the average within population pairwise distance in a MSA
 def distance_between_pop(alignment, indpop_dict, pop_l, pop_r):
@@ -359,7 +359,7 @@ def distance_between_pop(alignment, indpop_dict, pop_l, pop_r):
         return np.average(per_locus_dist, weights = per_locus_len)
     except:
         # this happens if only a single phased sequence is provided, then inter pop distance cannot be assessed
-        return None        
+        sys.exit("AutoPriorError: Automatic inference of tau prior failed.\nProvide tau prior manually.")     
 
 
 # automatically generates the tau and theta prior lines of the BPP control file

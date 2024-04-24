@@ -135,12 +135,13 @@ def proposal_setup_files(
     # write control file needed to evaluate proposal
         # get proposed population parameters and topology
     prop_param = auto_pop_param(proposed_imap, bpp_cdict['seqfile'], bpp_cdict['phase'])
-    prop_param['newick'] = get_attribute_filtered_tree(tree, mode)
-    prop_param['Imapfile'] = "proposed_imap.txt"
+    prop_param['newick']    = get_attribute_filtered_tree(tree, mode)
+    prop_param['Imapfile']  = "proposed_imap.txt"
+    
     bpp_cdict = dict_merge(bpp_cdict, prop_param)
     bppcfile_write(bpp_cdict, "proposed_ctl.ctl")
     
-    # add-on migration parameters to the control file, if migration patterns are specified
+    # if migration patterns are specified, append migration parameters to the control file
     if str(type(migration)) != "<class 'NoneType'>":
         append_migrate_rows(tree, migration, "proposed_ctl.ctl")
 
