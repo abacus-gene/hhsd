@@ -135,7 +135,7 @@ def format_time(seconds):
     '''
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
-    return f'{round(hours)}:{round(minutes)}:{round(seconds)}'
+    return f'{round(hours)} h {round(minutes)} m {round(seconds)} s'
 
 
 # check if a single numeric parameter is supplied in the correct format and range

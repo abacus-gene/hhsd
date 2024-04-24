@@ -44,7 +44,7 @@ def set_starting_state(
         root_node.species = True
 
     # print feedback about starting state
-    print(f"*** Starting state of {mode} analysis ***\n")
+    print(f"> Starting state of {mode} analysis\n")
     print(f"Number of species in starting delimitation:  {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
     print(get_attribute_filtered_tree(tree, "species", newick=False))
