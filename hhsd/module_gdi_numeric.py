@@ -2,7 +2,7 @@
 FUNCTIONS FOR CALCULATING THE GDI NUMERICALLY
 '''
 
-from .customtypehints import gdi, MigrationRates
+from .customtypehints import gdi, MigrationRates, Bound
 from .module_ete3 import TreeNode
 
 import numpy as np
@@ -106,26 +106,48 @@ def pg1_numeric_formula(
 
 
 def get_pg1_numerical(
-        node:           TreeNode,
-        migration_df:   MigrationRates
+        node:           TreeNode,          
+        migration_df:   MigrationRates,
+        bound:          Bound
         ) ->            float:
     
     '''
     Get the gdi of a given leaf node in the Tree object.
+
+    node is a TreeNode object representing a specific population
+    bound is the bound of the gdi value to be calculated, either 'lower', 'mean', or 'upper'
+    migration_df is the dataframe holding the migration rates
     '''
 
     sister_node:TreeNode   = node.get_sisters()[0]
     ancestor_node:TreeNode = node.up
+    
+    # get input values based on the bound
+    if bound == "lower":
+        migrate_key = '97.5% HPD' # higher migration rates decrease the gdi
+        theta_A = node.theta_hpd_975 # higher theta values lead to a lower gdi
+        theta_B = sister_node.theta_hpd_975 
+        tau_AB = ancestor_node.tau_hpd_025 # lower tau values lead to a lower gdi
+    elif bound == "mean":
+        migrate_key = 'M'
+        theta_A = node.theta_mean
+        theta_B = sister_node.theta_mean
+        tau_AB = ancestor_node.tau_mean
+    elif bound == "upper":
+        migrate_key = '2.5% HPD' # lower migration rates increase the gdi
+        theta_A = node.theta_hpd_025 # lower theta values lead to a higher gdi
+        theta_B = sister_node.theta_hpd_025
+        tau_AB = ancestor_node.tau_hpd_975 # higher tau values lead to a higher gdi
 
     # try accepts are for cases where one or both populations do not have migration to the other
     try:
-        Mig_AB = migration_df[migration_df["source"] == str(node.name)]["M"].to_list()[0]
+        Mig_AB = migration_df[migration_df["source"] == str(node.name)][migrate_key].to_list()[0]
     except:
         Mig_AB = 0
 
     try:
-        Mig_BA = migration_df[migration_df["source"] == str(sister_node.name)]["M"].to_list()[0]
+        Mig_BA = migration_df[migration_df["source"] == str(sister_node.name)][migrate_key].to_list()[0]
     except:
         Mig_BA = 0
 
-    return pg1_numeric_formula(node.theta, sister_node.theta, ancestor_node.tau, Mig_AB, Mig_BA)
+    return pg1_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA)

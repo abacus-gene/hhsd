@@ -7,9 +7,9 @@ PROPOSED CHANGES TO THE SPECIES DELIMITAITON
 
 import pandas as pd
 import numpy as np
-from typing import Dict
+from typing import Dict, Literal
 
-from .classes import AlgoMode, CfileParam, gdi, NodeName, MigrationRates
+from .customtypehints import AlgoMode, CfileParam, gdi, NodeName, MigrationRates, Bound
 from .module_ete3 import Tree, TreeNode
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, add_attribute_gdi, get_attribute_filtered_imap, tree_to_newick
 from .module_helper import flatten
@@ -17,23 +17,31 @@ from .module_migration import check_migration_reciprocal
 from .module_gdi_numeric import get_pg1_numerical
 from .module_gdi_simulate import genetree_simulation, get_pg1_from_sim
 from .module_msa_imap import imapfile_write
-
+from .module_parameters import ParamGDI
 
 def gdi_formula(pg1):
     """
     Definition of the GDI according to DOI:10.1093/sysbio/syw117
     """
-    return np.round( ((3*pg1)-1)/2, 2) 
+    gdi = ((3*pg1)-1)/2
+    return np.clip(np.round(gdi, 2), a_min=0, a_max=1)
 
 
 def get_gdi_values(
         tree:           Tree, 
         mode:           AlgoMode,
-        migration_df:   MigrationRates
+        migration_df:   MigrationRates,
+        bound:          Bound
         ) ->            Dict[NodeName, gdi]:
 
     '''
-    Calculate the gdi values for the node pairs to be modified numerically or via simulation
+    Get gdi values for nodes based on the parameters of the MSC(M) model
+
+    tree is the tree datastructure holding the species delimitation
+    mode is the mode of the algorithm, either 'merge' or 'split'
+    migration_df is the dataframe holding the migration rates
+    bound is the bound of the gdi value to be calculated, either 'lower', 'mean', or 'upper'
+
     '''
 
     # get the mode pairs for which the gdi needs to be calculated
@@ -45,17 +53,16 @@ def get_gdi_values(
     # iterate through the node pairs
     for pair in node_pairs_to_mod:
         # if nodes are not involved in any migration events, or only involved in reciprocal migration events, calculate the gdi numerically
-        if check_migration_reciprocal(pair[0], pair[1], migration_df):
-                gdi_values[pair[0].name] = gdi_formula(get_pg1_numerical(pair[0], migration_df))
-                gdi_values[pair[1].name] = gdi_formula(get_pg1_numerical(pair[1], migration_df))
+        if check_migration_reciprocal(pair[0], pair[1], migration_df) == True:
+            for node in pair:
+                # calculate the gdi values
+                gdi_values[node.name] = gdi_formula(get_pg1_numerical(node, migration_df, bound))
 
         # otherwise, use simulation to calculate the gdi
         else:
             for node in pair:
-                # start by simulating the genetrees
-                genetrees = genetree_simulation(node, tree, mode, migration_df)
                 # calculate the gdi values
-                gdi_values[node.name] = gdi_formula(get_pg1_from_sim(node, genetrees))
+                gdi_values[node.name] = gdi_formula(get_pg1_from_sim(node, tree, mode, migration_df, bound))
 
     return gdi_values
 
@@ -70,7 +77,17 @@ def calculate_gdi(
     Calculate gdi values and add them as attributes to the Tree
     '''
 
-    gdi_values = get_gdi_values(tree, mode, migration_df)
+    print()
+
+    gdi_values_lower = get_gdi_values(tree, mode, migration_df, bound='lower')
+    gdi_values_mean  = get_gdi_values(tree, mode, migration_df, bound='mean')
+    gdi_values_upper = get_gdi_values(tree, mode, migration_df, bound='upper')
+
+    # This print statement is used to clear the line of the previous print statements detailing the simulaltion work
+    print("                                                                                                                 ", end="\r")
+
+    # Combine the results into a single ParamGDI object
+    gdi_values = {node: ParamGDI(gdi_low=gdi_values_lower[node], gdi_mean=gdi_values_mean[node], gdi_high=gdi_values_upper[node]) for node in gdi_values_lower.keys()}
 
     tree = add_attribute_gdi(tree, mode, gdi_values)
 
@@ -95,7 +112,7 @@ def node_pair_decision(
 
     if   mode == 'merge':
         # if at least one of the 2 populations has low gdi indicating non-species status, merge the nodes
-        if gdi_threshold == None or (node_1.gdi <= gdi_threshold) or (node_2.gdi <= gdi_threshold): 
+        if gdi_threshold == None or (node_1.gdi_mean <= gdi_threshold) or (node_2.gdi_mean <= gdi_threshold): 
             node_1.species = False; node_1.modified = True
             node_2.species = False; node_2.modified = True
         else:
@@ -104,7 +121,7 @@ def node_pair_decision(
 
     elif mode == 'split':
         # if both populations have high gdi indiciating, disctinct species status, split them into 2 species
-        if gdi_threshold == None or ((node_1.gdi >= gdi_threshold) and (node_2.gdi >= 0.5)) or ((node_2.gdi >= gdi_threshold) and (node_1.gdi >= 0.5)):
+        if gdi_threshold == None or ((node_1.gdi_mean >= gdi_threshold) and (node_2.gdi_mean >= 0.5)) or ((node_2.gdi_mean >= gdi_threshold) and (node_1.gdi_mean >= 0.5)):
             node_1.species = True;  node_1.modified = True
             node_2.species = True;  node_2.modified = True
         else:
@@ -127,11 +144,15 @@ def print_decision_feedback(
     def node_pair_feedback(node_1, node_2, cf_dict):
         results = {
             "node 1":node_1.name,
+            "GDI 1": node_1.gdi_mean,
+            "lower bound 1" : node_1.gdi_low,
+            "upper bound 1" : node_1.gdi_high,
             "node 2":node_2.name,
-            "gdi 1": node_1.gdi,
-            "gdi 2": node_2.gdi,
-            f"{cf_dict['mode']} accepted?": node_1.modified
-                  }
+            "GDI 2": node_2.gdi_mean,
+            "lower bound 2" : node_2.gdi_low,
+            "upper bound 2" : node_2.gdi_high,
+            
+            f"{cf_dict['mode']} accepted?": node_1.modified}
 
         return results
 
@@ -141,10 +162,11 @@ def print_decision_feedback(
         feedback.append(node_pair_feedback(pair[0], pair[1], cf_dict))
 
     df = pd.DataFrame.from_dict(feedback)
-    df.to_csv("decision.csv")
+    df.rename(columns={'lower bound 1':"2.5% HPD", 'upper bound 1':"97.5% HPD",'lower bound 2':"2.5% HPD", 'upper bound 2':"97.5% HPD"}, inplace=True)
+    df.to_csv("decision.csv", index=False)
 
     # print each node pair, the gdi, and whether the proposal as accepted
-    print(f"\nProposal results:\n")
+    print(f"\n> Proposal results:\n")
     print(df.to_string(index=False, max_colwidth=36, justify="start"))
     
     # print the names of currently accepted species

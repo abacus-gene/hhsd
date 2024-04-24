@@ -9,7 +9,7 @@ import os
 
 import numpy as np
 
-from .customtypehints import BppCfile, BppCfileParam, GeneTrees, gdi, AlgoMode, MigrationRates
+from .customtypehints import BppCfile, BppCfileParam, GeneTrees, gdi, AlgoMode, MigrationRates, Bound
 from .module_ete3 import Tree, TreeNode
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path
 from .module_bpp import bppcfile_write
@@ -34,30 +34,78 @@ and simulation can be used to sample this distribution.
 '''
 
 def tree_to_extended_newick(
-        tree:   Tree
+        tree:   Tree,
+        bound: Bound
         ) ->    str:
 
     '''
     'tree' is an ete3 Tree object which contains the topology, and the tau and theta values as node attributes.
+    bound is used to select whether the numerical parameters facilitate the lower, mean, or upper bound of the gdi value.
     The output is an extended newick tree that also contains information about the tau and theta values.
     '''
 
+    root = tree.get_tree_root()
+
+    # get input values based on the bound
+    if bound == "lower":
+        theta   = 'theta_hpd_975' # higher theta values lead to a lower gdi
+        tau     = 'tau_hpd_025' # lower tau values lead to a lower gdi
+        root_tau    = root.tau_hpd_025
+        root_theta  = root.theta_hpd_975
+    elif bound == "mean":
+        theta   = 'theta_mean'
+        tau     = 'tau_mean'
+        root_tau    = root.tau_mean
+        root_theta  = root.theta_mean
+    elif bound == "upper":
+        theta   = 'theta_hpd_025' # lower theta values lead to a higher gdi
+        tau     = 'tau_hpd_975' # higher tau values lead to a higher gdi
+        root_tau    = root.tau_hpd_975
+        root_theta  = root.theta_hpd_025
+
     # create the extended newick version of the tree topology which contains the tau and theta values
-    tree_str = tree.write(features = ['tau', 'theta'],format=1)
+    tree_str = tree.write(features = [tau, theta],format=1)
 
         # filter out extra material not related to required parameters
     tree_str = re.sub(r':1\[&&NHX', '', tree_str)
-    tree_str = re.sub(':theta=', ' #', tree_str)
-    tree_str = re.sub(':tau=None', '', tree_str)
-    tree_str = re.sub(':tau=', ' :', tree_str)
+    tree_str = re.sub(f':{theta}=', ' #', tree_str)
+    tree_str = re.sub(f':{tau}=None', '', tree_str)
+    tree_str = re.sub(f':{tau}=', ' :', tree_str)
     tree_str = re.sub(r'\]', '', tree_str)
     tree_str = re.sub(r'\)', ') ', tree_str)
     tree_str = re.sub(r'\(', ' (', tree_str)
         # add in data corresponding to root node, which is not added in by ete3 for some reason
-    root = tree.get_tree_root()
-    tree_str = re.sub(';', f'{root.name} :{root.tau} #{root.theta};', tree_str)
+   
+    
+    tree_str = re.sub(';', f'{root.name} :{root_tau} #{root_theta};', tree_str)
 
     return tree_str
+
+def get_migration_events(
+        migration_df: MigrationRates,                  
+        bound:Bound
+        ) -> str:
+
+    """
+    Get the migration events and rates from the migration dataframe to append to the control file.
+
+    The migration events are appended to the control file in the format:
+    'migration = n
+    source destination M
+
+    The specific value for M is determined by the bound parameter.
+    """    
+
+    if bound == "lower":
+        migration_df = migration_df[['source', 'destination', '97.5% HPD']]# higher migration rates decrease the gdi
+    elif bound == "mean":
+        migration_df = migration_df[['source', 'destination', 'M']]
+    elif bound == "upper":
+        migration_df = migration_df[['source', 'destination', '2.5% HPD']]# lower migration rates increase the gdi
+
+    mig_events = f'migration = {len(migration_df["source"])}\n {migration_df.to_string(header = False, index = False)}'
+
+    return mig_events
 
 
 # default parameters for a 'bpp --simulate' control file used for simulating gene trees
@@ -77,13 +125,15 @@ def create_simulate_cfile(
         node:           TreeNode,
         tree:           Tree, 
         mode:           AlgoMode, 
-        migration_df:   MigrationRates
+        migration_df:   MigrationRates,
+        bound:          Bound
         ) ->            None: # writes control file to disk
 
     '''
     - 'tree' is an ete3 Tree object.
     - 'mode' specifies whether the algo is running in merge or split mode.
     - 'migration_df' is the DataFrame object containing the source, destination, and rate (M) for all migration events.
+    - 'bound' is the bound of the gdi value to be calculated, either 'lower', 'mean', or 'upper'.
 
     the function writes a 'bpp --simulate' control file to disk specifying the parmeters of the simulation. 
     All populations in the simulation generate two sequences, as this facilitates the estiamtion of the gdi from gene trees 
@@ -98,7 +148,7 @@ def create_simulate_cfile(
     node_name = node.name
     sister_name = node.get_sisters()[0].name
 
-    print(f"\ninferring gdi for population {node_name} and sister {sister_name} using gene tree simulation...", end="\r")
+    print(f"inferring gdi for '{node_name}' and sister '{sister_name}' using gene tree simulation...                                    ", end="\r")
 
     # infer the parameters of the simulation dict from the tree object
     sim_dict = {}
@@ -114,14 +164,15 @@ def create_simulate_cfile(
         else:
             sim_dict['popsizes'] += '0 '
 
-    sim_dict['newick'] = tree_to_extended_newick(sim_tree)
+    sim_dict['newick'] = tree_to_extended_newick(sim_tree, bound)
 
     # write the control dict
     ctl_dict = dict_merge(copy.deepcopy(default_BPP_simctl_dict), sim_dict)
     bppcfile_write(ctl_dict,"sim_ctl.ctl")
 
     # append lines corresponding to migration events and rates (simulation is only required if migraiton is present in the model)
-    mig_events = f'migration = {len(migration_df["source"])}\n {migration_df.to_string(header = False, index = False)}'
+    
+    mig_events = get_migration_events(migration_df, bound)
     with open("sim_ctl.ctl", "a") as myfile: 
         myfile.write(mig_events)
 
@@ -152,7 +203,6 @@ def run_BPP_simulate(
 
         # exit if process is stopped
         if realtime_output == '' and process.poll() is not None:
-            print("                                                                     ", end="\r")
             break
 
 
@@ -161,7 +211,8 @@ def genetree_simulation(
         node:           TreeNode,
         tree:           Tree, 
         mode:           AlgoMode, 
-        migration_df:   MigrationRates
+        migration_df:   MigrationRates,
+        bound:          Bound
         ) ->            GeneTrees: 
 
     '''
@@ -173,13 +224,16 @@ def genetree_simulation(
     os.chdir('genetree_simulate')
 
     # write the cfile to disk
-    create_simulate_cfile(node, tree, mode, migration_df)
+    create_simulate_cfile(node, tree, mode, migration_df, bound)
     
     # run bpp --simulate
     run_BPP_simulate('sim_ctl.ctl')
     
     # read the gene trees from the output file
-    all_genetrees = readlines('MyTree.tre')
+    try:
+        all_genetrees = readlines('MyTree.tre')
+    except:
+        raise ValueError("Error in simulating gene trees. Please check the /genetree_simulate folder for more information.")
 
     os.remove('MyTree.tre')
     os.remove('MyImap.txt')
@@ -190,7 +244,7 @@ def genetree_simulation(
     return all_genetrees
 
 
-def get_pg1_from_sim(
+def pg1_from_sim(
         node:           TreeNode, 
         all_genetrees:  GeneTrees
         ) ->            float:
@@ -217,6 +271,26 @@ def get_pg1_from_sim(
     g1_genetrees = [element.group(0) for element in g1_genetrees if element]
 
     # gdi is the proportion of the loci where this topology is observed
-    gdi = len(g1_genetrees)/len(all_genetrees)
+    pg1 = len(g1_genetrees)/len(all_genetrees)
 
-    return np.round(gdi, 2)
+    return pg1
+
+def get_pg1_from_sim(
+        node:           TreeNode,
+        tree:           Tree,
+        mode:           AlgoMode,
+        migration_df:   MigrationRates,
+        bound:          Bound
+        ) ->            float:
+    
+    '''
+    Get P(G1) of a given TreeNode by simulating trees and counting the proportion of trees with the correct topology.
+    '''
+
+    # simulate the gene trees
+    genetrees = genetree_simulation(node, tree, mode, migration_df, bound)
+
+    # get P(G1)
+    pg1 = pg1_from_sim(node, genetrees)
+
+    return pg1

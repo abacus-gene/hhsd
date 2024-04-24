@@ -11,17 +11,15 @@ from copy import deepcopy
 from typing import Tuple, Optional
 import pandas as pd
 
-from .classes import CfileParam, BppCfileParam, BppCfile, BppOutfile, NodeName, NumericParamEstimates, MigrationRates
+from .customtypehints import CfileParam, BppCfileParam, BppCfile, BppOutfile, NodeName, NumericParamEstimates, MigrationRates
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path, format_time
 from .module_msa_imap import auto_prior, auto_nloci
-
+from .module_parameters import ParamTau, ParamTheta
 
 # Custom styler function to format floats and tuples of floats with six decimal places
 def format_float(value):
     if isinstance(value, float):
         return format(value, '.6f')
-    elif isinstance(value, tuple):
-        return tuple(format(x, '.6f') if isinstance(x, float) else (' ' if pd.isna(x) else x) for x in value)
     elif pd.isna(value):
         return ' '  # Replace Pandas NaN with empty string
     else:
@@ -279,7 +277,8 @@ def extract_param_estimate_from_outfile(
     param_types = []
     param_nodes = []
     param_means = []
-    param_hpd_95 = []
+    param_hpd_025 = []
+    param_hpd_975 = []
 
     for param_name, mean, hpd_bottom, hpd_top in zip(full_param_names, means, hpd_bottoms, hpd_tops):
         full_param_name = str(param_name).split("_", maxsplit=1)
@@ -297,46 +296,63 @@ def extract_param_estimate_from_outfile(
         param_means.append(float(mean))
         
         # get the 95% hpd
-        param_hpd_95.append((float(hpd_bottom), float(hpd_top)))
+        param_hpd_025.append(float(hpd_bottom))
+        param_hpd_975.append(float(hpd_top))
 
     # format the lists into the dataframe
     numeric_param = pd.DataFrame({
         'type':param_types,
         'node':param_nodes,
         'mean':param_means,
-        'hpd_95':param_hpd_95
+        'hpd_025':param_hpd_025,
+        'hpd_975':param_hpd_975,
     })
-
+    
     return numeric_param
 
 
 def extract_tau_theta_values(
         numeric_param:  NumericParamEstimates,                    
-        ) ->            Tuple[dict[NodeName, float], dict[NodeName, float]]:
+        ) ->            Tuple[dict[NodeName, ParamTau], dict[NodeName, ParamTheta]]:
 
     '''
     Get a dict of node names:tau values and node names:theta values from the BPP outfile
     '''
 
-    tau_mean_dict = numeric_param.query("`type` == 'tau'").set_index('node')['mean'].to_dict()
-    tau_hpd_dict = numeric_param.query("`type` == 'tau'").set_index('node')['hpd_95'].to_dict()
-    theta_mean_dict = numeric_param.query("`type` == 'theta'").set_index('node')['mean'].to_dict()
-    theta_hpd_dict = numeric_param.query("`type` == 'theta'").set_index('node')['hpd_95'].to_dict()
+    tau_mean_dict       = numeric_param.query("`type` == 'tau'").set_index('node')['mean'].to_dict()
+    tau_hpd_025_dict    = numeric_param.query("`type` == 'tau'").set_index('node')['hpd_025'].to_dict()
+    tau_hpd_975_dict    = numeric_param.query("`type` == 'tau'").set_index('node')['hpd_975'].to_dict()
+
+    theta_mean_dict     = numeric_param.query("`type` == 'theta'").set_index('node')['mean'].to_dict()
+    theta_hpd_025_dict  = numeric_param.query("`type` == 'theta'").set_index('node')['hpd_025'].to_dict()
+    theta_hpd_975_dict  = numeric_param.query("`type` == 'theta'").set_index('node')['hpd_975'].to_dict()
 
     # create dataframe
-    df = pd.DataFrame.from_dict([theta_mean_dict, theta_hpd_dict, tau_mean_dict, tau_hpd_dict])
+    df = pd.DataFrame.from_dict([theta_mean_dict, theta_hpd_025_dict, theta_hpd_975_dict, tau_mean_dict, tau_hpd_025_dict, tau_hpd_975_dict])
     df = df.transpose()
-    df = df.rename({0: 'theta', 1: ' ', 2: 'tau', 3: '  '}, axis=1)
+    df = df.rename({0: 'theta', 1: '2.5% HPD', 2: '97.5% HPD', 3: 'tau', 4: '2.5% HPD', 5: '97.5% HPD'}, axis=1)
     
-    # write to disk
+
+    # write results to disk
     df.to_csv("estimated_tau_theta.csv")
 
+
     # format for printing, and print to screen
-    print("\nEstimated tau and theta parameters:\n")
-    for col in df.columns: df[col] = df[col].apply(format_float)
+    print("\n> Estimated tau and theta parameters:\n")
     print(df.to_string(index=True, max_colwidth=36, justify="start", na_rep=' ',))
     
-    return tau_mean_dict, theta_mean_dict
+
+    # create the return dicts
+    tau_dict = {}
+    for index, row in numeric_param.query("`type` == 'tau'").set_index('node').iterrows():
+        tau_dict[index] = ParamTau(row['mean'], row['hpd_025'], row['hpd_975'])
+    
+    theta_dict = {}
+    for index, row in numeric_param.query("`type` == 'theta'").set_index('node').iterrows():
+        theta_dict[index] = ParamTheta(row['mean'], row['hpd_025'], row['hpd_975'])
+
+    return tau_dict, theta_dict
+
 
 
 def extract_mig_param_to_df(
@@ -361,19 +377,15 @@ def extract_mig_param_to_df(
         # split 'node' into 'source' and 'destination'
         df['source'] = df['node'].apply(lambda x: x.split('->')[0])
         df['destination'] = df['node'].apply(lambda x: x.split('->')[1])
-        df = df[['source', 'destination', 'mean', 'hpd_95']]
-        df.rename(columns={'mean': 'M', 'hpd_95': '  '}, inplace=True)
+        df = df[['source', 'destination', 'mean', 'hpd_025', 'hpd_975']]
+        df.rename(columns={'mean': 'M', 'hpd_025': '2.5% HPD', 'hpd_975': '97.5% HPD'}, inplace=True)
 
         # write to disk
         df.to_csv("estimated_M.csv", index=False)
 
         # format for printing, and print to screen
         print_df = deepcopy(df)
-        print("\nEstimated migration rates:\n")
-        for col in print_df.columns: print_df[col] = print_df[col].apply(format_float)
+        print("\n> Estimated migration rates:\n")
         print(print_df.to_string(index=False, max_colwidth=36, justify="start"))
-
-        # format by removing hpd column before returning
-        df.drop('  ', axis=1, inplace=True)
         
         return df

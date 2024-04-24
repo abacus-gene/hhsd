@@ -66,6 +66,7 @@ GeneTrees = TypeVar('GeneTrees', bound=List[str])
 
 AlgoMode = Literal['merge', 'split']
 
+Bound = Literal['lower', 'mean', 'upper']
 
 class NewickTree(str):
     '''
