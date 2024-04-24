@@ -1,5 +1,6 @@
 # HHSD
 `hhsd` can be used to perform Hierarchical Heuristic Species Delimitation from multilocus genetic data.
+---
 ## Installation instructions
 ### Prerequisites
 - Users must have python 3.9+ installed. Check your current version with `python --version`. 
@@ -45,10 +46,11 @@ hhsd
 ```
 This should result in a greeting message similar to the following:
 ```
-hhsd version 0.9.7
+hhsd version 0.9.9
 12 cores available
 specify control file for analysis with --cfile
 ```
+---
 ## Trial run
 Following the install, users can perform a qucik trial run to familiarize themselves with the program. 
 ### The dataset:
