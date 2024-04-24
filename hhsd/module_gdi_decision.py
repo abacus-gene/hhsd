@@ -6,6 +6,7 @@ PROPOSED CHANGES TO THE SPECIES DELIMITAITON
 
 
 import pandas as pd
+import numpy as np
 from typing import Dict
 
 from .classes import AlgoMode, CfileParam, gdi, NodeName, MigrationRates
@@ -13,9 +14,16 @@ from .module_ete3 import Tree, TreeNode
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, add_attribute_gdi, get_attribute_filtered_imap, tree_to_newick
 from .module_helper import flatten
 from .module_migration import check_migration_reciprocal
-from .module_gdi_numeric import get_gdi_numerical
-from .module_gdi_simulate import genetree_simulation, get_gdi_from_sim
+from .module_gdi_numeric import get_pg1_numerical
+from .module_gdi_simulate import genetree_simulation, get_pg1_from_sim
 from .module_msa_imap import imapfile_write
+
+
+def gdi_formula(pg1):
+    """
+    Definition of the GDI according to DOI:10.1093/sysbio/syw117
+    """
+    return np.round( ((3*pg1)-1)/2, 2) 
 
 
 def get_gdi_values(
@@ -34,26 +42,20 @@ def get_gdi_values(
     # create empty list of gdi values for the relevant nodes
     gdi_values = {node.name:None for node in flatten(node_pairs_to_mod)}
 
-    # find the node pairs for which the gdi can be calculated numerically (they do not migrate or migrate only between eachother)
+    # iterate through the node pairs
     for pair in node_pairs_to_mod:
+        # if nodes are not involved in any migration events, or only involved in reciprocal migration events, calculate the gdi numerically
         if check_migration_reciprocal(pair[0], pair[1], migration_df):
+                gdi_values[pair[0].name] = gdi_formula(get_pg1_numerical(pair[0], migration_df))
+                gdi_values[pair[1].name] = gdi_formula(get_pg1_numerical(pair[1], migration_df))
 
-                gdi_values[pair[0].name] = get_gdi_numerical(pair[0], migration_df)
-                gdi_values[pair[1].name] = get_gdi_numerical(pair[1], migration_df)
-
-    # check if any gdis remain uninferred, activate the simulation branch
-    if None in list(gdi_values.values()):
-        
-        # start by simulating the genetrees
-        genetrees = genetree_simulation(tree, mode, migration_df)
-
-        for pair in node_pairs_to_mod:
-            # check that numerical values are not already present
-            if (gdi_values[pair[0].name] == None) and (gdi_values[pair[1].name] == None):
-
-                gdi_values[pair[0].name] = get_gdi_from_sim(pair[0], genetrees)
-                gdi_values[pair[1].name] = get_gdi_from_sim(pair[1], genetrees)
-
+        # otherwise, use simulation to calculate the gdi
+        else:
+            for node in pair:
+                # start by simulating the genetrees
+                genetrees = genetree_simulation(node, tree, mode, migration_df)
+                # calculate the gdi values
+                gdi_values[node.name] = gdi_formula(get_pg1_from_sim(node, genetrees))
 
     return gdi_values
 

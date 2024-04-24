@@ -10,16 +10,16 @@ from scipy.linalg import expm
 from scipy.integrate import quad
 
 
-def gdi_numeric(
+def pg1_numeric_formula(
         theta_A:    float,
         theta_B:    float,
         tau_AB:     float,
         M_AB:       float,
         M_BA:       float
-        ) ->        gdi:
+        ) ->        float:
 
     '''
-    Numerically calculate the gdi for node pairs with reciprocal migration or no migration.
+    Numerically calculate P(G1) for node pairs with only reciprocal migration or no migration.
     '''
 
     cA = 2/theta_A
@@ -66,9 +66,7 @@ def gdi_numeric(
     rate_matrix = np.asarray(rate_matrix, dtype=np.float64)
 
     
-    # probability density of a1-a2 coalescence before tau_AB
-        # from eq. 10 
-        # = [p_AAB,AAA(t)+p_AAB,AAB(t)]*[2/theta_A] + [p_AAB,AAA(t)+p_AAB,AAB(t)]*[2/theta_A]
+    # Get probability density of a1-a2 coalescence before tau_AB [also known as P(G1A)]
     def coalesce_prob_dens_at_tau(tau):
         
         # exponentiate matrix
@@ -81,9 +79,16 @@ def gdi_numeric(
         return prob_coalescence_in_pop_A + prob_coalescence_in_pop_B
 
     # integrate from 0 to tau_AB to get final probability of a1-a2 coalescence before tau_AB
-    gdi, err = quad(coalesce_prob_dens_at_tau, 0, tau_AB)
+    prob_coal_before_tau, err = quad(coalesce_prob_dens_at_tau, 0, tau_AB)
 
-    return np.round(gdi, 2)
+    # Get probability of a1-a2 coalescence after tau_AB (ocurring in the common ancestor population)
+    prob_matrix = expm((rate_matrix * tau_AB))
+    prob_coal_after_tau = np.sum(prob_matrix[1,0:8])/3
+    
+    
+    p1 = prob_coal_before_tau + prob_coal_after_tau
+
+    return p1
 
     # # alternative calculation based on eigenvectors and eigenvalues (does not work when both M = 0)
     #
@@ -100,10 +105,10 @@ def gdi_numeric(
     # print (prob_coalescence_in_pop_A + prob_coalescence_in_pop_B)
 
 
-def get_gdi_numerical(
+def get_pg1_numerical(
         node:           TreeNode,
         migration_df:   MigrationRates
-        ) ->            gdi:
+        ) ->            float:
     
     '''
     Get the gdi of a given leaf node in the Tree object.
@@ -123,4 +128,4 @@ def get_gdi_numerical(
     except:
         Mig_BA = 0
 
-    return gdi_numeric(node.theta, sister_node.theta, ancestor_node.tau, Mig_AB, Mig_BA)
+    return pg1_numeric_formula(node.theta, sister_node.theta, ancestor_node.tau, Mig_AB, Mig_BA)

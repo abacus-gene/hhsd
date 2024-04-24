@@ -74,6 +74,7 @@ default_BPP_simctl_dict:BppCfileParam = {
 
 # create the bpp --simulate cfile for simulating gene trees
 def create_simulate_cfile(
+        node:           TreeNode,
         tree:           Tree, 
         mode:           AlgoMode, 
         migration_df:   MigrationRates
@@ -92,18 +93,30 @@ def create_simulate_cfile(
     # get tree object needed to create simulation 
     sim_tree = get_attribute_filtered_tree(tree, mode, newick=False)
     leaf_names = set([leaf.name for leaf in sim_tree])
+    node_name = node.name
+    sister_name = node.get_sisters()[0].name
 
     # infer the parameters of the simulation dict from the tree object
     sim_dict = {}
     sim_dict['species&tree'] = f'{len(leaf_names)} {" ".join(leaf_names)}'
-    sim_dict['popsizes'] = f'     {"2 "*len(leaf_names)}'
+    sim_dict['popsizes'] = '     '
+    
+    for nodename in leaf_names:
+        # simulate two sequences from the node of interest, and one from the sister population
+        if nodename == node_name:
+            sim_dict['popsizes'] += '2 '
+        elif nodename == sister_name:
+            sim_dict['popsizes'] += '1 '
+        else:
+            sim_dict['popsizes'] += '0 '
+
     sim_dict['newick'] = tree_to_extended_newick(sim_tree)
 
     # write the control dict
     ctl_dict = dict_merge(copy.deepcopy(default_BPP_simctl_dict), sim_dict)
     bppcfile_write(ctl_dict,"sim_ctl.ctl")
 
-    # if migration rates were inferred, append lines corresponding to migration events and rates
+    # append lines corresponding to migration events and rates (simulation is only required if migraiton is present in the model)
     mig_events = f'migration = {len(migration_df["source"])}\n {migration_df.to_string(header = False, index = False)}'
     with open("sim_ctl.ctl", "a") as myfile: 
         myfile.write(mig_events)
@@ -143,6 +156,7 @@ def run_BPP_simulate(
 
 # final wrapper function to simulation gene trees according to the given MSC+M model
 def genetree_simulation(
+        node:           TreeNode,
         tree:           Tree, 
         mode:           AlgoMode, 
         migration_df:   MigrationRates
@@ -152,57 +166,53 @@ def genetree_simulation(
     Handle the file system operations, and bpp control file creation to simulate gene trees. Return the gene trees as a list
     '''
 
+    
     os.mkdir('genetree_simulate')
     os.chdir('genetree_simulate')
 
-    create_simulate_cfile(tree, mode, migration_df)
+    # write the cfile to disk
+    create_simulate_cfile(node, tree, mode, migration_df)
     
+    # run bpp --simulate
     run_BPP_simulate('sim_ctl.ctl')
     
-    genetree_lines = readlines('MyTree.tre')
+    # read the gene trees from the output file
+    all_genetrees = readlines('MyTree.tre')
 
     os.remove('MyTree.tre') # delete the tree file (it is very large)
     os.chdir('..')
+    os.rmdir('genetree_simulate')
 
-    return genetree_lines
+    return all_genetrees
 
 
-def get_gdi_from_sim(
+def get_pg1_from_sim(
         node:           TreeNode, 
-        genetree_lines: GeneTrees
-        ) ->            gdi:
+        all_genetrees:  GeneTrees
+        ) ->            float:
     
     '''
-    Get the gdi of a given TreeNode from the simulated data.
+    Get P(G1) of a given TreeNode from the simulated data.
 
-    The gdi is defined as "the probability that the first coalescence is between the two A sequences and it happens before 
-    reaching species divergence when we trace the genealogy backwards in time"
+    P(G1) is probability of the topology ((a1, a2), b1);
 
-    This definition allows us to estimate the gdi from simulated gene tree topologies. After simulating many genetrees for a 
-    fully specified MSC+M model with two sequences per population, the gdi of a given population can be estimated by counting '
-    the proportion of genetrees where the two sequences from the population coalesce before reaching the divergence time between
-    that population and its sister node.
+    This definition allows us to estimate P(G1) from simulated gene tree topologies. After simulating many genetrees for a 
+    fully specified MSC+M model with two sequences from population A, and one from the sister population B, P(G1) of A can be estimated by 
+    counting the proportion of gene trees where the topology ((a1, a2), b1) is observed.
     '''
 
-    node_name:str = node.name
-    ancestor:TreeNode = node.up; tau_AB:float = ancestor.tau
+    node_name = str(node.name)
+    seq_name = node_name.lower()
 
     # create the regex corresponding to the required topology
-    correct_genetree = f'\({str(node_name).lower()}[12]\^{node_name}[:][0][.][\d]#,{str(node_name).lower()}[12]\^{node_name}:[0][.][\d]#\)'
+    correct_genetree = f'\({seq_name}[12]\^{node_name}[:][0][.][\d]#,{seq_name}[12]\^{node_name}:[0][.][\d]#\)'
     correct_genetree = re.sub('#', '{6}', correct_genetree) # this is needed due to no '{''}' characters being allowed within f strings
     
     # find all occurrences of the correct topology
-    genetrees = [re.search(correct_genetree, element) for element in genetree_lines]
-    genetrees = [element.group(0) for element in genetrees if element]
-
-    # isolate the time at which each correct topology is achieved
-    num_match = (re.search('0.\d{6}', genetrees[0])); num_start = num_match.span()[0]; num_end = num_match.span()[1]
-    times = [float(element[num_start:num_end]) for element in genetrees]
-
-    # isolate the ocurrences that are after the split time for the populations
-    before_split = [element for element in times if element < tau_AB]
+    g1_genetrees = [re.search(correct_genetree, element) for element in all_genetrees]
+    g1_genetrees = [element.group(0) for element in g1_genetrees if element]
 
     # gdi is the proportion of the loci where this topology is observed
-    gdi = len(before_split)/len(genetree_lines)
+    gdi = len(g1_genetrees)/len(all_genetrees)
 
     return np.round(gdi, 2)
