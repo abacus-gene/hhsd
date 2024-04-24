@@ -1,15 +1,12 @@
 '''
-TREE CLASS 
+THIS MODULE CONTAINS CODE TAKEN FROM THE ORIGINAL ETE3 REPOSITORY:
+
+https://github.com/etetoolkit/ete/blob/ete3/ete3/parser/newick.py
+https://github.com/etetoolkit/ete/blob/ete3/ete3/coretype/tree.py
+
+THE CODE WAS MODIFIED TO REMOVE DEPENDENCIES ON PYQT5, SIX, AND ETE3 ITSELF.
+ONLY FUNCTIONS AND METHODS RELEVANT TO HHSD WERE KEPT, OTHERS WERE REMOVED.
 '''
-
-# THIS MODULE CONTAINS CODE TAKEN FROM THE ORIGINAL ETE3 REPOSITORY:
-
-# https://github.com/etetoolkit/ete/blob/ete3/ete3/parser/newick.py
-# https://github.com/etetoolkit/ete/blob/ete3/ete3/coretype/tree.py
-
-# THE CODE WAS MODIFIED TO REMOVE DEPENDENCIES ON PYQT5, SIX, AND ETE3 ITSELF.
-# ONLY FUNCTIONS AND METHODS RELEVANT TO HHMS WERE KEPT, OTHERS WERE REMOVED.
-
 
 # #START_LICENSE###########################################################
 #

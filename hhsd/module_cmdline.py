@@ -8,7 +8,7 @@ from pathlib import PurePath
 import sys
 import multiprocessing
 
-from .classes import Cfile, CfileParam
+from .customtypehints import Cfile, CfileParam
 from .module_helper import stripall
 
 
@@ -91,7 +91,7 @@ def cmdline_init(
 
     # load splash text if no arguments are provided
     if len(arguments_dict) == 0 and "--cfile" not in argument_list:
-        sys.exit(f"hhsd version 0.9.8\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
+        sys.exit(f"hhsd version 0.9.9\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
 
     # check that the control file is specified
     if "--cfile" not in arguments_dict:

@@ -5,10 +5,10 @@ FUNCTIONS RELATED TO READING, MODIFYING, AND WRITING TREE DATA STRUCTURES
 import copy
 from typing import Literal, Union, Tuple, List, Dict
 
-from .classes import NodeName, NewickTree, ImapPopInd, ImapIndPop, AlgoMode, gdi
+from .customtypehints import NodeName, NewickTree, ImapPopInd, ImapIndPop, AlgoMode, gdi
 from .module_ete3 import Tree, TreeNode
 from .module_helper import flatten
-
+from .module_parameters import ParamTau, ParamTheta, ParamGDI
 
 def tree_to_newick  (
         tree:           Tree
@@ -56,10 +56,12 @@ def add_individuals_to_tree(
         pop_node = list(filter(lambda n: n.name == pop_name and n.node_type == "population", pop_tree.traverse()))[0]
         
         # iterate through each individual in the population, and add as a child
-        for ind_name in imap_popind[pop_name]: pop_node.add_child(name = ind_name)
+        for ind_name in imap_popind[pop_name]: 
+            pop_node.add_child(name = ind_name)
         
         # add child attribute to resulting nodes
-        for child_node in pop_node.iter_descendants(): child_node.add_features(node_type = "individual",)
+        for child_node in pop_node.iter_descendants(): 
+            child_node.add_features(node_type = "individual",)
 
     return pop_tree
 
@@ -250,8 +252,8 @@ def get_node_pairs_to_modify(
 ## FUNCTIONS FOR ADDING NUMERICAL NODE ATTRIBUTES (E.G. TAU OR M) INFERRED USING BPP TO THE TREE OBJECT
 def add_attribute_tau_theta(
         tree:           Tree,
-        tau_values:     Dict[NodeName, float],
-        theta_values:   Dict[NodeName, float],
+        tau_values:     Dict[NodeName, ParamTau],
+        theta_values:   Dict[NodeName, ParamTheta],
         ) ->            Tree:
 
     '''
@@ -262,15 +264,23 @@ def add_attribute_tau_theta(
     for node in tree.search_nodes(node_type="population"):
         # tau values are only available for non-leaf (ancestral) nodes.
         if node.name in list(tau_values.keys()):
-            node.add_features(tau = float(tau_values[node.name]))
+            node.add_features(tau_mean = float(tau_values[node.name].mean))
+            node.add_features(tau_hpd_025 = float(tau_values[node.name].hpd_025))
+            node.add_features(tau_hpd_975 = float(tau_values[node.name].hpd_975))
         else:
-            node.add_features(tau = None)
+            node.add_features(tau_mean = None)
+            node.add_features(tau_hpd_025 = None)
+            node.add_features(tau_hpd_975 = None)
         
         # theta values should be available for all nodes.
         if node.name in list(theta_values.keys()):
-            node.add_features(theta = float(theta_values[node.name]))
+            node.add_features(theta_mean = float(theta_values[node.name].mean))
+            node.add_features(theta_hpd_025 = float(theta_values[node.name].hpd_025))
+            node.add_features(theta_hpd_975 = float(theta_values[node.name].hpd_975))
         else:
-            node.add_features(theta = None)
+            node.add_features(theta_mean = None)
+            node.add_features(theta_hpd_025 = None)
+            node.add_features(theta_hpd_975 = None)
 
     return tree
 
@@ -278,7 +288,7 @@ def add_attribute_tau_theta(
 def add_attribute_gdi(
         tree:           Tree,
         mode:           AlgoMode,
-        gdi_values:     Dict[NodeName, gdi],
+        gdi_values:     Dict[NodeName, ParamGDI],
         ) ->            Tree:
 
     '''
@@ -289,8 +299,11 @@ def add_attribute_gdi(
     for node in tree.search_nodes(node_type="population"):        
         node.add_features(gdi = None)
 
+    # get the nodes that we wish to modify
     leaf_nodes = flatten(get_node_pairs_to_modify(tree, mode))
     for node in leaf_nodes:
-        node.gdi = float(gdi_values[node.name])
+        node.gdi_mean = gdi_values[node.name].mean
+        node.gdi_low = gdi_values[node.name].low
+        node.gdi_high = gdi_values[node.name].high
 
     return tree

@@ -15,7 +15,7 @@ import numpy as np
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
 
-from .classes import ImapIndPop, ImapPopInd, Filename, NodeName, CfileParam, NewickTree
+from .customtypehints import ImapIndPop, ImapPopInd, Filename, NodeName, CfileParam, NewickTree
 from .module_helper import readlines, remove_empty_rows
 from .data_dicts import distance_dict, avail_chars
 from .module_tree import get_first_split_populations

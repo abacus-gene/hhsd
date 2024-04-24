@@ -5,7 +5,7 @@ EXECUTE A GIVEN ITERATION OF THE ITERATIVE DELIMITATION ALGORITHM
 import copy
 import os
 
-from .classes import AlgoMode, CfileParam, BppCfileParam, MigrationPattern
+from .customtypehints import AlgoMode, CfileParam, BppCfileParam, MigrationPattern
 from .module_ete3 import Tree
 from .module_msa_imap import auto_pop_param, imapfile_write
 from .module_helper import dict_merge
@@ -44,7 +44,7 @@ def set_starting_state(
         root_node.species = True
 
     # print feedback about starting state
-    print(f"*** Starting state of {mode} analysis ***\n")
+    print(f"> Starting state of {mode} analysis\n")
     print(f"Number of species in starting delimitation:  {len(get_current_leaf_species(tree))}")
     print(str(get_current_leaf_species(tree))[1:-1])
     print(get_attribute_filtered_tree(tree, "species", newick=False))

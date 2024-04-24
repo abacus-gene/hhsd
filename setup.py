@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name='hhsd',
-    version='0.9.8',
+    version='0.9.9',
     author='Daniel Kornai',
     description='Hierarchical heuristic species delimitation under the multispecies coalescent model with migration.',
     url='https://github.com/abacus-gene/hhsd',

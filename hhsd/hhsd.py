@@ -5,7 +5,7 @@ MAIN HHSD SCRIPT
 from sys import argv
 import sys
 
-from .classes import CfileParam, BppCfileParam, Cfile
+from .customtypehints import CfileParam, BppCfileParam, Cfile
 from .module_HA import HA_iteration, check_contintue, set_starting_state
 from .module_bpp import bppctl_init
 from .module_tree import init_tree
