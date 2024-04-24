@@ -2,7 +2,7 @@
 FUNCTIONS FOR CALCULATING THE GDI NUMERICALLY
 '''
 
-from .classes import gdi, MigrationRates
+from .customtypehints import gdi, MigrationRates
 from .module_ete3 import TreeNode
 
 import numpy as np

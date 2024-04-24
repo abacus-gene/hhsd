@@ -8,7 +8,7 @@ from typing import Tuple, List
 
 import pandas as pd
 
-from .classes import MigrationPattern, NodeName, BppCfile
+from .customtypehints import MigrationPattern, NodeName, BppCfile
 from .module_ete3 import Tree, TreeNode
 from .module_helper import stripall
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree

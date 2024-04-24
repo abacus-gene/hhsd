@@ -5,7 +5,7 @@ EXECUTE A GIVEN ITERATION OF THE ITERATIVE DELIMITATION ALGORITHM
 import copy
 import os
 
-from .classes import AlgoMode, CfileParam, BppCfileParam, MigrationPattern
+from .customtypehints import AlgoMode, CfileParam, BppCfileParam, MigrationPattern
 from .module_ete3 import Tree
 from .module_msa_imap import auto_pop_param, imapfile_write
 from .module_helper import dict_merge

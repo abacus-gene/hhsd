@@ -9,7 +9,7 @@ import os
 
 import numpy as np
 
-from .classes import BppCfile, BppCfileParam, GeneTrees, gdi, AlgoMode, MigrationRates
+from .customtypehints import BppCfile, BppCfileParam, GeneTrees, gdi, AlgoMode, MigrationRates
 from .module_ete3 import Tree, TreeNode
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path
 from .module_bpp import bppcfile_write
@@ -90,11 +90,15 @@ def create_simulate_cfile(
     (performed in 'get_gdi_from_sim').
     '''
 
+    
+
     # get tree object needed to create simulation 
     sim_tree = get_attribute_filtered_tree(tree, mode, newick=False)
     leaf_names = set([leaf.name for leaf in sim_tree])
     node_name = node.name
     sister_name = node.get_sisters()[0].name
+
+    print(f"\ninferring gdi for population {node_name} and sister {sister_name} using gene tree simulation...", end="\r")
 
     # infer the parameters of the simulation dict from the tree object
     sim_dict = {}
@@ -130,8 +134,6 @@ def run_BPP_simulate(
     '''
     Use 'bpp --simulate' to sample gene trees from a given MSC+M model
     '''
-
-    print(f"\ninferring gdi using gene tree simulation...", end="\r")
 
     # runs BPP in a dedicated subprocess
     process = subprocess.Popen(
@@ -179,7 +181,9 @@ def genetree_simulation(
     # read the gene trees from the output file
     all_genetrees = readlines('MyTree.tre')
 
-    os.remove('MyTree.tre') # delete the tree file (it is very large)
+    os.remove('MyTree.tre')
+    os.remove('MyImap.txt')
+    os.remove('sim_ctl.ctl')
     os.chdir('..')
     os.rmdir('genetree_simulate')
 
