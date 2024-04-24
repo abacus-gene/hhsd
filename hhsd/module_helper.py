@@ -195,6 +195,7 @@ def get_bundled_bpp_path():
     '''
     get the correct platform-specific path to the bundled bpp executable, depending on the platform of the user
     '''
+    
     # Determine the user's operating system
     system = platform.system()
     
@@ -204,13 +205,14 @@ def get_bundled_bpp_path():
     # Define the absolute path from the script folder to the bpp folder
     bpp_folder = os.path.join(script_dir, 'bpp')
 
-    if system == 'Windows':
+    if system   == 'Windows':
         exec_path = os.path.join(bpp_folder, 'windows', 'bpp.exe')
     elif system == 'Linux':
         exec_path = os.path.join(bpp_folder, 'linux', 'bpp')
     elif system == 'Darwin':  # macOS
         exec_path = os.path.join(bpp_folder, 'macos', 'bpp')
+    
     else:
-        raise Exception(f"Unsupported operating system: {system}")
+        sys.exit(f"HHSD does not support the current operating system: {system}")
 
     return exec_path

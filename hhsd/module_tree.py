@@ -285,6 +285,7 @@ def add_attribute_gdi(
     Add inferred gdi values to the tree. 
     '''
     
+    # scrub the tree of gdi values for nodes that are not leaf nodes
     for node in tree.search_nodes(node_type="population"):        
         node.add_features(gdi = None)
 
