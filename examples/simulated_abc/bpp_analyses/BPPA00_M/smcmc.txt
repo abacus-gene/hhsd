@@ -1,0 +1,1 @@
+Gen	theta_1A	theta_2B	theta_3C	theta_4ABC	theta_5AB	tau_4ABC	tau_5AB	M_A->B	M_B->A	lnL
