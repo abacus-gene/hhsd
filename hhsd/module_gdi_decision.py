@@ -14,17 +14,10 @@ from .module_ete3 import Tree, TreeNode
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, add_attribute_gdi, get_attribute_filtered_imap, tree_to_newick
 from .module_helper import flatten
 from .module_migration import check_migration_reciprocal
-from .module_gdi_numeric import get_pg1_numerical
-from .module_gdi_simulate import genetree_simulation, get_pg1_from_sim
+from .module_gdi_numeric import get_pg1a_numerical
+from .module_gdi_simulate import get_pg1a_from_sim
 from .module_msa_imap import imapfile_write
 from .module_parameters import ParamGDI
-
-def gdi_formula(pg1):
-    """
-    Definition of the GDI according to DOI:10.1093/sysbio/syw117
-    """
-    gdi = ((3*pg1)-1)/2
-    return np.clip(np.round(gdi, 2), a_min=0, a_max=1)
 
 
 def get_gdi_values(
@@ -56,13 +49,13 @@ def get_gdi_values(
         if check_migration_reciprocal(pair[0], pair[1], migration_df) == True:
             for node in pair:
                 # calculate the gdi values
-                gdi_values[node.name] = gdi_formula(get_pg1_numerical(node, migration_df, bound))
+                gdi_values[node.name] = get_pg1a_numerical(node, migration_df, bound)
 
         # otherwise, use simulation to calculate the gdi
         else:
             for node in pair:
                 # calculate the gdi values
-                gdi_values[node.name] = gdi_formula(get_pg1_from_sim(node, tree, mode, migration_df, bound))
+                gdi_values[node.name] = get_pg1a_from_sim(node, tree, mode, migration_df, bound)
 
     return gdi_values
 

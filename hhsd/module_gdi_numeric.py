@@ -10,7 +10,7 @@ from scipy.linalg import expm
 from scipy.integrate import quad
 
 
-def pg1_numeric_formula(
+def pg1a_numeric_formula(
         theta_A:    float,
         theta_B:    float,
         tau_AB:     float,
@@ -80,15 +80,10 @@ def pg1_numeric_formula(
 
     # integrate from 0 to tau_AB to get final probability of a1-a2 coalescence before tau_AB
     prob_coal_before_tau, err = quad(coalesce_prob_dens_at_tau, 0, tau_AB)
-
-    # Get probability of a1-a2 coalescence after tau_AB (ocurring in the common ancestor population)
-    prob_matrix = expm((rate_matrix * tau_AB))
-    prob_coal_after_tau = np.sum(prob_matrix[1,0:8])/3
     
-    
-    p1 = prob_coal_before_tau + prob_coal_after_tau
+    pg1a = prob_coal_before_tau
 
-    return p1
+    return pg1a
 
     # # alternative calculation based on eigenvectors and eigenvalues (does not work when both M = 0)
     #
@@ -105,7 +100,7 @@ def pg1_numeric_formula(
     # print (prob_coalescence_in_pop_A + prob_coalescence_in_pop_B)
 
 
-def get_pg1_numerical(
+def get_pg1a_numerical(
         node:           TreeNode,          
         migration_df:   MigrationRates,
         bound:          Bound
@@ -150,4 +145,4 @@ def get_pg1_numerical(
     except:
         Mig_BA = 0
 
-    return pg1_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA)
+    return pg1a_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA)

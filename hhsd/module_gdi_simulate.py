@@ -244,23 +244,25 @@ def genetree_simulation(
     return all_genetrees
 
 
-def pg1_from_sim(
-        node:           TreeNode, 
+def pg1a_from_sim(
+        node:           TreeNode,
+        tau_AB:         float, 
         all_genetrees:  GeneTrees
         ) ->            float:
     
     '''
-    Get P(G1) of a given TreeNode from the simulated data.
+    Get P(G1A) of a given TreeNode from the simulated data.
 
-    P(G1) is probability of the topology ((a1, a2), b1);
+    P(G1A) is probability of the topology ((a1, a2), b1) before the populations split.
 
     This definition allows us to estimate P(G1) from simulated gene tree topologies. After simulating many genetrees for a 
-    fully specified MSC+M model with two sequences from population A, and one from the sister population B, P(G1) of A can be estimated by 
-    counting the proportion of gene trees where the topology ((a1, a2), b1) is observed.
+    fully specified MSC+M model with two sequences from population A, and one from the sister population B, P(G1A) of A can be estimated by 
+    counting the proportion of gene trees where the topology ((a1, a2), b1) is observed before the populations split.
     '''
 
     node_name = str(node.name)
     seq_name = node_name.lower()
+
 
     # create the regex corresponding to the required topology
     correct_genetree = f'\({seq_name}[12]\^{node_name}[:][0][.][\d]#,{seq_name}[12]\^{node_name}:[0][.][\d]#\)'
@@ -270,12 +272,19 @@ def pg1_from_sim(
     g1_genetrees = [re.search(correct_genetree, element) for element in all_genetrees]
     g1_genetrees = [element.group(0) for element in g1_genetrees if element]
 
-    # gdi is the proportion of the loci where this topology is observed
-    pg1 = len(g1_genetrees)/len(all_genetrees)
+    # isolate the time at which each correct topology is achieved
+    num_match = (re.search('0.\d{6}', g1_genetrees[0])); num_start = num_match.span()[0]; num_end = num_match.span()[1]
+    times = [float(element[num_start:num_end]) for element in g1_genetrees]
 
-    return pg1
+    # isolate the ocurrences that are after the split time for the populations
+    before_split = [element for element in times if element < tau_AB]
 
-def get_pg1_from_sim(
+    # gdi is the proportion of the loci where this topology is observed before the populations split
+    pg1a = len(before_split)/len(all_genetrees)
+
+    return pg1a
+
+def get_pg1a_from_sim(
         node:           TreeNode,
         tree:           Tree,
         mode:           AlgoMode,
@@ -284,13 +293,22 @@ def get_pg1_from_sim(
         ) ->            float:
     
     '''
-    Get P(G1) of a given TreeNode by simulating trees and counting the proportion of trees with the correct topology.
+    Get P(G1A) of a given TreeNode by simulating trees and counting the proportion of trees with the correct topology.
     '''
 
     # simulate the gene trees
     genetrees = genetree_simulation(node, tree, mode, migration_df, bound)
 
-    # get P(G1)
-    pg1 = pg1_from_sim(node, genetrees)
+    # get the time at which the populations split
+    ancestor_node = node.up
+    if bound == "lower":
+        tau_AB = ancestor_node.tau_hpd_025
+    if bound == "mean":
+        tau_AB = ancestor_node.tau_mean
+    if bound == "upper":
+        tau_AB = ancestor_node.tau_hpd_975
 
-    return pg1
+    # get P(G1A)
+    pg1a = pg1a_from_sim(node, tau_AB, genetrees)
+
+    return pg1a
