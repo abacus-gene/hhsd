@@ -252,7 +252,7 @@ def check_gdi_threshold(
         gdi_thresh,
         mode
         ):
-        
+    # user must specify a gdi threshold   
     if gdi_thresh == None:
         sys.exit("MissingParameterError: 'gdi_threshold' not specified.")
     elif gdi_thresh == "None":

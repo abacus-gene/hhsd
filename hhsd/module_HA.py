@@ -9,9 +9,10 @@ from .customtypehints import AlgoMode, CfileParam, BppCfileParam, MigrationPatte
 from .module_ete3 import Tree
 from .module_msa_imap import auto_pop_param, imapfile_write
 from .module_helper import dict_merge
-from .module_tree import get_attribute_filtered_imap, get_attribute_filtered_tree, get_current_leaf_species, add_attribute_tau_theta
-from .module_bpp import bppcfile_write, run_BPP_A00, extract_param_estimate_from_outfile, extract_tau_theta_values, extract_mig_param_to_df
-from .module_gdi_decision import tree_modify_delimitation, calculate_gdi
+from .module_tree import get_attribute_filtered_imap, get_attribute_filtered_tree, get_current_leaf_species
+from .module_bpp import bppcfile_write, run_BPP_A00
+from .module_bpp_readres import MSCNumericParamEstimates
+from .module_gdi_decision import tree_modify_delimitation, get_gdi_values
 from .module_migration import append_migrate_rows
 
 
@@ -171,20 +172,15 @@ def HA_iteration(
     # create bpp control file and imap file corresponding to proposal
     proposal_setup_files(tree, bpp_cdict, cf_dict["mode"], cf_dict["migration"])
     
-    # run BPP and capture the output
+    # run BPP and get the distributions of the estimated numeric parameters
     run_BPP_A00("proposed_ctl.ctl")
-    estimated_param  = extract_param_estimate_from_outfile(BPP_outfile="proposal_bpp_out.txt")
-    tau_values, theta_values = extract_tau_theta_values(estimated_param)
-    migration_df     = extract_mig_param_to_df(estimated_param)
-
-    # append the inferred numeric parameters to the tree
-    tree = add_attribute_tau_theta(tree, tau_values, theta_values)
+    estimated_param = MSCNumericParamEstimates(BPP_outfile="proposal_bpp_out.txt", BPP_mcmcfile="proposal_bpp_mcmc.txt")
 
     # get gdi via calculations or simulations, and append results to the tree
-    tree = calculate_gdi(tree, cf_dict['mode'], migration_df)
+    gdi_values = get_gdi_values(tree, estimated_param, cf_dict['mode'])
 
     # make decision based on results
-    tree = tree_modify_delimitation(tree, cf_dict)
+    tree = tree_modify_delimitation(tree, gdi_values, cf_dict)
 
     # move back into working directory
     os.chdir("..")

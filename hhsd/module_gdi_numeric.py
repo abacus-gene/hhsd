@@ -2,8 +2,9 @@
 FUNCTIONS FOR CALCULATING THE GDI NUMERICALLY
 '''
 
-from .customtypehints import gdi, MigrationRates, Bound
+from .customtypehints import NodeName
 from .module_ete3 import TreeNode
+from .module_bpp_readres import MSCNumericParamEstimates, NumericParam
 
 import numpy as np
 from scipy.linalg import expm
@@ -85,64 +86,45 @@ def pg1a_numeric_formula(
 
     return pg1a
 
-    # # alternative calculation based on eigenvectors and eigenvalues (does not work when both M = 0)
-    #
-    # eigval, V, U = eig(rate_matrix, left=True, right=True)
-    # eigval = np.real(eigval)
-    # eigval[20] = -1
-    # eigval = np.array([(np.exp(eigval[k]*tau_AB) - 1)/eigval[k] for k in range(0, 21)])
-    # eigval[20] = tau_AB
-    # P = U.dot(np.diag(eigval)).dot(np.linalg.inv(U)) 
-
-    # prob_coalescence_in_pop_A = (P[1, 0] + P[1, 1])*(2/theta_A)
-    # prob_coalescence_in_pop_B = (P[1, 6] + P[1, 7])*(2/theta_B)
-    
-    # print (prob_coalescence_in_pop_A + prob_coalescence_in_pop_B)
-
 
 def get_pg1a_numerical(
         node:           TreeNode,          
-        migration_df:   MigrationRates,
-        bound:          Bound
-        ) ->            float:
+        numeric_param:  MSCNumericParamEstimates,
+        ) ->            NumericParam:
     
     '''
-    Get the gdi of a given leaf node in the Tree object.
-
-    node is a TreeNode object representing a specific population
-    bound is the bound of the gdi value to be calculated, either 'lower', 'mean', or 'upper'
-    migration_df is the dataframe holding the migration rates
+    Get the gdi of a given leaf node in the Tree object, if it can be calulcated analytically.
+    Perform the 1000 replicate similations needed to establish a distribution of gdi values
     '''
 
-    sister_node:TreeNode   = node.get_sisters()[0]
-    ancestor_node:TreeNode = node.up
+    main_node:NodeName     = str(node.name)
+    sister_node:NodeName   = str(node.get_sisters()[0].name)
+    ancestor_node:NodeName = str(node.up.name)
     
-    # get input values based on the bound
-    if bound == "lower":
-        migrate_key = '97.5% HPD' # higher migration rates decrease the gdi
-        theta_A = node.theta_hpd_975 # higher theta values lead to a lower gdi
-        theta_B = sister_node.theta_hpd_975 
-        tau_AB = ancestor_node.tau_hpd_025 # lower tau values lead to a lower gdi
-    elif bound == "mean":
-        migrate_key = 'M'
-        theta_A = node.theta_mean
-        theta_B = sister_node.theta_mean
-        tau_AB = ancestor_node.tau_mean
-    elif bound == "upper":
-        migrate_key = '2.5% HPD' # lower migration rates increase the gdi
-        theta_A = node.theta_hpd_025 # lower theta values lead to a higher gdi
-        theta_B = sister_node.theta_hpd_025
-        tau_AB = ancestor_node.tau_hpd_975 # higher tau values lead to a higher gdi
+    # perform the replicate simulations
+    results = []
+    for i in range(1000):
 
-    # try accepts are for cases where one or both populations do not have migration to the other
-    try:
-        Mig_AB = migration_df[migration_df["source"] == str(node.name)][migrate_key].to_list()[0]
-    except:
-        Mig_AB = 0
+        tau_dict        = numeric_param.sample_tau(i)
+        theta_dict      = numeric_param.sample_theta(i)
+        migration_df    = numeric_param.sample_migparam(i)
 
-    try:
-        Mig_BA = migration_df[migration_df["source"] == str(sister_node.name)][migrate_key].to_list()[0]
-    except:
-        Mig_BA = 0
+        # get input values 
+        theta_A = theta_dict[main_node]
+        theta_B = theta_dict[sister_node]
+        tau_AB  = tau_dict[ancestor_node]
+        
+        try: # try accepts are for cases where one or both populations do not have migration to the other
+            Mig_AB = migration_df[migration_df["source"] == main_node]['M'].to_list()[0]
+        except:
+            Mig_AB = 0
 
-    return pg1a_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA)
+        try:
+            Mig_BA = migration_df[migration_df["source"] == sister_node]['M'].to_list()[0]
+        except:
+            Mig_BA = 0
+
+        # perform the calculations
+        results.append(pg1a_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA))
+
+    return NumericParam(results)

@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Optional
 import pandas as pd
 import numpy as np
 
-from .customtypehints import BppMCMCfile, BppOutfile, NodeName, NumericParamEstimates, MigrationRates, MCMCResults
+from .customtypehints import BppMCMCfile, BppOutfile, NodeName, MigrationRates, MCMCResults
 from .module_helper import readlines
 
 
@@ -45,9 +45,6 @@ Node (+1)       Tau      Theta    Label
 7          0.000457   0.001081    SCANBCNCA
 8          0.000191   0.002238    SCANBC
 '''
-
-
-
 
 
 
@@ -133,7 +130,7 @@ def get_node_number_map(
 
     return map_dict_long, map_dict_numeric
 
-class NumericParamSummary(pd.DataFrame):
+class MSCNumericParamSummary(pd.DataFrame):
     """
     Alias class for the dataframe holding summary statistics for numeric parameters for which MCMC sampling was performed by bpp.
     """
@@ -143,7 +140,7 @@ def extract_param_summaries(
         mcmc_chain:         MCMCResults,
         map_dict_long:      dict,
         map_dict_numeric:   dict,
-        ) ->                NumericParamSummary:            
+        ) ->                MSCNumericParamSummary:            
 
     '''
     Extract summary statistics for all parameters from the raw mcmc chain
@@ -185,14 +182,14 @@ def extract_param_summaries(
         'type':param_types,
         'node':param_nodes,
         'mean': param_means,
-        'param_hpd_025': param_hpd_025,
-        'param_hpd_975':param_hpd_975
+        'hpd_025': param_hpd_025,
+        'hpd_975':param_hpd_975
     })
     
     return numeric_param_summary
 
 def meanhpd_tau_theta(
-        numeric_param:  NumericParamSummary                    
+        numeric_param:  MSCNumericParamSummary                    
         ):
 
     '''
@@ -211,7 +208,7 @@ def meanhpd_tau_theta(
     # create dataframe
     df = pd.DataFrame.from_dict([theta_mean_dict, theta_hpd_025_dict, theta_hpd_975_dict, tau_mean_dict, tau_hpd_025_dict, tau_hpd_975_dict])
     df = df.transpose()
-    df = df.rename({0: 'theta', 1: '2.5% CI', 2: '97.5% HPD', 3: 'tau', 4: '2.5% HPD', 5: '97.5% HPD'}, axis=1)
+    df = df.rename({0: 'theta', 1: '2.5% HPD', 2: '97.5% HPD', 3: 'tau', 4: '2.5% HPD', 5: '97.5% HPD'}, axis=1)
     
     # write results to disk
     df.to_csv("estimated_tau_theta.csv")
@@ -221,7 +218,7 @@ def meanhpd_tau_theta(
     print(df.to_string(index=True, max_colwidth=36, justify="start", na_rep=' ',))
 
 def meanhpd_mig(
-        numeric_param:  NumericParamSummary,    
+        numeric_param:  MSCNumericParamSummary,    
         ):
     
     '''
@@ -254,9 +251,9 @@ def meanhpd_mig(
         print("\n> Estimated migration rates:\n")
         print(print_df.to_string(index=False, max_colwidth=36, justify="start"))
 
-class NumericParamDf(pd.DataFrame):
+class MSCNumericParamDf(pd.DataFrame):
     """
-    Dataframe alias holding numericparam objects
+    Dataframe alias holding numericparam objects for parameters of the MSC model
     """
     pass
 
@@ -275,19 +272,19 @@ def extract_param_traces(
         map_dict_long:      dict,
         map_dict_numeric:   dict,
         n_subsample:        int = 1000,          
-        ) ->                NumericParamDf:            
+        ) ->                MSCNumericParamDf:            
 
     '''
     Extract summary statistics for all parameters from the raw mcmc chain
     '''
 
     # get the indeces at which the sequence will be downsampled to
-    indices = evenly_spaced_integers(n=len(values_arr), m=n_subsample)
+    indices = evenly_spaced_integers(n=mcmc_chain.shape[0], m=n_subsample)
 
     # format the pieces into lists
     param_types = []
     param_nodes = []
-    param_objs  = []
+    param_vals  = []
 
     for col_name, values in mcmc_chain.items():
         full_param_name = str(col_name).split("_", maxsplit=1)
@@ -303,20 +300,20 @@ def extract_param_traces(
         
         # get the actual values from the mcmc chain (thinned to n_subsample samples)
         values_arr = np.array(values)
-        param_objs.append(values_arr[indices])
+        param_vals.append(values_arr[indices])
 
     # format the lists into the dataframe
     numeric_param_df = pd.DataFrame({
         'type':param_types,
         'node':param_nodes,
-        'val':param_objs
+        'val':param_vals
     })
     
     return numeric_param_df
 
 
 
-class NumericParamEstimates():
+class MSCNumericParamEstimates():
     def __init__(self, BPP_outfile: BppOutfile, BPP_mcmcfile: BppMCMCfile):
         # read in the actual mcmc results
         self.mcmc_df = read_bpp_mcmc_out(BPP_mcmcfile)
@@ -333,7 +330,7 @@ class NumericParamEstimates():
         meanhpd_mig(self.param_summaries)
 
         # extract the traces into numericParam objects
-        self.param_traces_thinned = extract_param_traces(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
+        self.param_traces = extract_param_traces(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
 
     def sample_tau(self, index:int) -> Dict[NodeName, float]:
         """
@@ -341,7 +338,7 @@ class NumericParamEstimates():
         """
         tau_dict = {}
         for node_name, row in self.param_traces.query("`type` == 'tau'").set_index('node').iterrows():
-            tau_dict[node_name] = row["obj"][index]
+            tau_dict[node_name] = row["val"][index]
 
         return tau_dict
 
@@ -351,10 +348,10 @@ class NumericParamEstimates():
         """
         theta_dict = {}
         for node_name, row in self.param_traces.query("`type` == 'theta'").set_index('node').iterrows():
-            theta_dict[node_name] = row["obj"][index]
+            theta_dict[node_name] = row["val"][index]
 
         return theta_dict
-    
+
     def sample_migparam(self, index:int) -> Optional[MigrationRates]:
         """
         Sample a set of migration rate parameters from the 
