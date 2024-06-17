@@ -10,7 +10,7 @@ from typing import Dict, Literal
 from .customtypehints import AlgoMode, CfileParam, NodeName, MigrationRates
 from .module_ete3 import Tree, TreeNode
 from .module_tree import get_node_pairs_to_modify, get_attribute_filtered_tree, get_current_leaf_species, get_iteration, get_attribute_filtered_imap
-from .module_helper import flatten
+from .module_helper import flatten, check_numeric
 from .module_migration import check_migration_reciprocal
 from .module_gdi_numeric import get_pg1a_numerical
 from .module_gdi_simulate import get_pg1a_from_sim
@@ -68,29 +68,25 @@ def node_pair_decision(
     Decide to accept or reject a merge/split proposal
     '''
 
-    mode:AlgoMode = cf_dict['mode']
-    gdi_threshold = cf_dict['gdi_threshold']
+    # get the thresholds (these come in the form similar to >0.4 or <=1.0)
+    gdi_thresholds = cf_dict['gdi_threshold']
+    threshold_1 = f'x{gdi_thresholds[0]}' 
+    threshold_2 = f'x{gdi_thresholds[1]}'
 
-    node_1_name = str(node_1.name)
-    node_2_name = str(node_2.name)
+    # get the mean gdis (formatted to strings to comply with the check_numeric function's expected input type)
+    mean_gdi_1 = str(np.round(gdi_values[str(node_1.name)].mean(),2))
+    mean_gdi_2 = str(np.round(gdi_values[str(node_2.name)].mean(),2))
 
-    if   mode == 'merge':
-        # if at least one of the 2 populations has low gdi indicating non-species status, merge the nodes
-        if gdi_threshold == None or (gdi_values[node_1_name].mean() <= gdi_threshold) or (gdi_values[node_2_name].mean() <= gdi_threshold): 
-            node_1.species = False; node_1.modified = True
-            node_2.species = False; node_2.modified = True
-        else:
-            node_1.modified = False; node_2.modified = False
-
-
-    elif mode == 'split':
-        # if both populations have high gdi indiciating, disctinct species status, split them into 2 species
-        if gdi_threshold == None or ((gdi_values[node_1_name].mean() >= gdi_threshold) and (gdi_values[node_2_name].mean() >= 0.5)) or ((gdi_values[node_2_name].mean() >= gdi_threshold) and (gdi_values[node_1_name].mean() >= 0.5)):
-            node_1.species = True;  node_1.modified = True
-            node_2.species = True;  node_2.modified = True
-        else:
-            node_1.modified = False; node_2.modified = False
-
+    # check if either of the two possible combinations of interpreting the gdi values and thresholds evaluate to true. 
+    #       for example, in merge mode, if mean_gdi_1 = 0.9, mean_gdi_2 = 0.8, then thresholds of >0.7,>0.7 will eval to true.     
+    within_thresholds = (check_numeric(mean_gdi_1, threshold_1) and check_numeric(mean_gdi_2, threshold_2)) or (check_numeric(mean_gdi_1, threshold_2) and check_numeric(mean_gdi_2, threshold_1))
+    
+    # modify node attribues to reflect if the values where within the thresholds.
+    if within_thresholds: 
+        node_1.species = False; node_1.modified = True
+        node_2.species = False; node_2.modified = True
+    else:
+        node_1.modified = False; node_2.modified = False
 
 
 def print_decision_feedback(

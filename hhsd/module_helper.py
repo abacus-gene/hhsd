@@ -148,7 +148,7 @@ def check_numeric(
     # this module uses the literal eval function, which should only be used very very cautiously
     try: 
         # check the input conforms to the standard
-        if not re.fullmatch("[-<>=x0-9]+", statement):
+        if not re.fullmatch("[-<>=x0-9.]+", statement):
             sys.exit("WARNING WARNING INCORRECT STATEMENT USED IN LITERAL EVAL")
     except:
         sys.exit("WARNING WARNING INCORRECT STATEMENT USED IN LITERAL EVAL")
