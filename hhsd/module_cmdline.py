@@ -72,7 +72,7 @@ def interpret_parameter_override(
         argument
         ) -> CfileParam:
 
-    args_to_override = argument.split(",")
+    args_to_override = argument.split(", ")
     
     try:
         cf_ovveride_dict = {stripall(arg.split("=")[0]):stripall(arg.split("=")[1]) for arg in args_to_override}

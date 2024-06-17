@@ -5,10 +5,9 @@ FUNCTIONS RELATED TO READING, MODIFYING, AND WRITING TREE DATA STRUCTURES
 import copy
 from typing import Literal, Union, Tuple, List, Dict
 
-from .customtypehints import NodeName, NewickTree, ImapPopInd, ImapIndPop, AlgoMode, gdi
+from .customtypehints import NodeName, NewickTree, ImapPopInd, ImapIndPop, AlgoMode
 from .module_ete3 import Tree, TreeNode
-from .module_helper import flatten
-from .module_parameters import ParamTau, ParamTheta, ParamGDI
+
 
 def tree_to_newick  (
         tree:           Tree
@@ -252,8 +251,8 @@ def get_node_pairs_to_modify(
 ## FUNCTIONS FOR ADDING NUMERICAL NODE ATTRIBUTES (E.G. TAU OR M) INFERRED USING BPP TO THE TREE OBJECT
 def add_attribute_tau_theta(
         tree:           Tree,
-        tau_values:     Dict[NodeName, ParamTau],
-        theta_values:   Dict[NodeName, ParamTheta],
+        tau_values:     Dict[NodeName, float],
+        theta_values:   Dict[NodeName, float],
         ) ->            Tree:
 
     '''
@@ -264,46 +263,51 @@ def add_attribute_tau_theta(
     for node in tree.search_nodes(node_type="population"):
         # tau values are only available for non-leaf (ancestral) nodes.
         if node.name in list(tau_values.keys()):
-            node.add_features(tau_mean = float(tau_values[node.name].mean))
-            node.add_features(tau_hpd_025 = float(tau_values[node.name].hpd_025))
-            node.add_features(tau_hpd_975 = float(tau_values[node.name].hpd_975))
+            node.add_features(tau = float(tau_values[node.name]))
         else:
-            node.add_features(tau_mean = None)
-            node.add_features(tau_hpd_025 = None)
-            node.add_features(tau_hpd_975 = None)
-        
+            node.add_features(tau = None)
+
         # theta values should be available for all nodes.
         if node.name in list(theta_values.keys()):
-            node.add_features(theta_mean = float(theta_values[node.name].mean))
-            node.add_features(theta_hpd_025 = float(theta_values[node.name].hpd_025))
-            node.add_features(theta_hpd_975 = float(theta_values[node.name].hpd_975))
+            node.add_features(theta = float(theta_values[node.name]))
         else:
-            node.add_features(theta_mean = None)
-            node.add_features(theta_hpd_025 = None)
-            node.add_features(theta_hpd_975 = None)
+            node.add_features(theta = None)
 
     return tree
 
-# add the gdi attribute to specific nodes in the tree
-def add_attribute_gdi(
-        tree:           Tree,
-        mode:           AlgoMode,
-        gdi_values:     Dict[NodeName, ParamGDI],
-        ) ->            Tree:
-
+def ensure_taus_valid(
+        tree:   Tree
+        ) ->    Tree:
     '''
-    Add inferred gdi values to the tree. 
+    go through all of the tau parameters, checking that the age of the ancestor is always larger than the descendant.
+    the mcmc algorithm of bpp sometimes violates this constraint, but simulation fails if this condition is not maintained.
     '''
-    
-    # scrub the tree of gdi values for nodes that are not leaf nodes
-    for node in tree.search_nodes(node_type="population"):        
-        node.add_features(gdi = None)
 
-    # get the nodes that we wish to modify
-    leaf_nodes = flatten(get_node_pairs_to_modify(tree, mode))
-    for node in leaf_nodes:
-        node.gdi_mean = gdi_values[node.name].mean
-        node.gdi_low = gdi_values[node.name].low
-        node.gdi_high = gdi_values[node.name].high
+    root = tree.get_tree_root()
+
+    ancestors_older_all = [False]
+
+    while not all(ancestors_older_all):
+        ancestors_older = []
+        for node in tree.traverse("postorder"):
+            # skip the root node, as it has no ancestor
+            if node != root:
+                node_age = node.tau
+                    # leaf nodes to not have taus, as they have age 0
+                if str(type(node_age)) == "<class 'NoneType'>":
+                    node_age = 0.0
+                parent = node.up
+                parent_age = float(parent.tau)
+                
+                if node_age < parent_age:
+                    ancestors_older.append(True)
+                else:
+                    print(f"found node {node.name} with age {node_age}, which is not less than {parent.name}'s age of {parent_age}")
+                    ancestors_older.append(False)
+                    parent.tau = parent_age + 0.000001
+                    print(f"therefore the age of {parent.name} was incremented to {parent_age + 0.000001}")
+        ancestors_older_all = ancestors_older
 
     return tree
+
+        

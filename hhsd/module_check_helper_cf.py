@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from .module_ete3 import Tree
-from .module_helper import check_file_exists, check_folder
+from .module_helper import check_file_exists, check_folder, check_numeric
 from .module_msa_imap import alignfile_to_MSA, imapfile_read, count_seq_per_pop
 from .module_tree import name_internal_nodes, get_all_populations
 from .module_migration import read_specified_mig_pattern
@@ -252,22 +252,38 @@ def check_gdi_threshold(
         gdi_thresh,
         mode
         ):
-        
+    # user must specify a gdi threshold   
     if gdi_thresh == None:
         sys.exit("MissingParameterError: 'gdi_threshold' not specified.")
     elif gdi_thresh == "None":
         print(f"Activating gdi estimation mode. All {mode} proposals will be automatically accepted!\n")
         return None
     else:
-        if not bool(re.fullmatch("\A[<>]{1}[0]{1}[.]{1}[0-9]+\Z", gdi_thresh)):
-            sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'.\nPlease specify as '<0.x' or  '>0.x' (e.g. '<0.5' or '>0.8') depending on the mode")
+        # check correct syntax
+        if not bool(re.fullmatch("(leq{1}|geq{1}|gt{1}|lt{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(leq{1}|geq{1}|gt{1}|lt{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+            sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRefer to the manual for further detail on how to specify thresholds.")
 
-        elif mode == "merge" and gdi_thresh[0] != "<":
-            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. specify as '<{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
-        elif mode == "split" and gdi_thresh[0] != ">":
-            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is a lower bound. specify as '>{gdi_thresh[1:]}' instead of '{gdi_thresh}'")
+        elif mode == "merge" and not bool(re.fullmatch("(leq{1}|lt{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(leq{1}|lt{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. Specify relations as 'leq' (meaning '<=') or  'lt' (meaning '<') instead of '{gdi_thresh}'")
+        
+        elif mode == "split" and not bool(re.fullmatch("(geq{1}|gt{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(geq{1}|gt{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is a lower bound. Specify relations as 'geq' (meaning '>=') or  'gt' (meaning '>') instead of '{gdi_thresh}'")
 
-        return float(gdi_thresh[1:]) # return the parameter in the correct type
+        # attempt to parse, and check if values are valid (e.g. within the range [0,1] )
+        thresh = str(gdi_thresh).split(",")
+        thresh = [t.strip() for t in thresh]
+        thresh_values = [re.sub('(leq{1}|geq{1}|gt{1}|lt{1})\s*', "", t) for t in thresh]
+        for val in thresh_values:
+            if not check_numeric(val, "0.0<=x<=1.0", "f"):
+                sys.exit(f"GdiParameterError: the threshold '{val}' is outside the allowed range of [0,1]")
+        
+        # substitute verbal descriptions (lt, gt, leq, geq) with symbols
+        thresh = [re.sub('leq{1}\s*', "<=", t) for t in thresh]
+        thresh = [re.sub('geq{1}\s*', ">=", t) for t in thresh]
+        thresh = [re.sub('lt{1}\s*', "<", t) for t in thresh]
+        thresh = [re.sub('gt{1}\s*', ">", t) for t in thresh]
+        
+        return thresh
 
 
 ## MIGRATION SPECIFIC CHECKS

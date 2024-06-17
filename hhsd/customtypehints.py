@@ -36,11 +36,19 @@ class BppOutfile(str):
     '''
     pass
 
-class NumericParamEstimates(pd.DataFrame):
+class BppMCMCfile(str):
     '''
-    Dataframe containing the tau, theta, and possibly M parameters for each node in the MSC model
+    Alias class for the bpp mcmc output file (or filepath)
     '''
     pass
+
+class MCMCResults(pd.DataFrame):
+    '''
+    Dataframe containing the MCMC chain for the tau, theta, and possibly M parameters for each node in the MSC model
+    '''
+    pass
+
+
 
 class MigrationPattern(pd.DataFrame):
     '''
@@ -60,13 +68,17 @@ class NodeName(str):
     '''
     pass
 
-gdi = NewType('gdi', float)
+
 
 GeneTrees = TypeVar('GeneTrees', bound=List[str])
 
 AlgoMode = Literal['merge', 'split']
 
-Bound = Literal['lower', 'mean', 'upper']
+class GdiThreshold(dict):
+    """
+    Alias class holding the user specified gdi thresholds
+    """
+    pass
 
 class NewickTree(str):
     '''
