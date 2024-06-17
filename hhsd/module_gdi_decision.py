@@ -82,12 +82,20 @@ def node_pair_decision(
     within_thresholds = (check_numeric(mean_gdi_1, threshold_1) and check_numeric(mean_gdi_2, threshold_2)) or (check_numeric(mean_gdi_1, threshold_2) and check_numeric(mean_gdi_2, threshold_1))
     
     # modify node attribues to reflect if the values where within the thresholds.
-    if within_thresholds: 
-        node_1.species = False; node_1.modified = True
-        node_2.species = False; node_2.modified = True
-    else:
-        node_1.modified = False; node_2.modified = False
-
+    if   cf_dict["mode"] == "merge": # in merge mode, candidates are stripped of their species status
+        if within_thresholds: 
+            node_1.species = False; node_1.modified = True
+            node_2.species = False; node_2.modified = True
+        else:
+            node_1.modified = False; node_2.modified = False
+    
+    elif cf_dict["mode"] == "split": # in split mode, candidates are granted species status
+        if within_thresholds:
+            node_1.species = True;  node_1.modified = True
+            node_2.species = True;  node_2.modified = True
+        else:
+            node_1.modified = False; node_2.modified = False
+ 
 
 def print_decision_feedback(
         node_pairs_to_modify,

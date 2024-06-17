@@ -11,7 +11,7 @@ from .customtypehints import BppCfile, BppCfileParam, GeneTrees, AlgoMode, Migra
 from .module_ete3 import Tree, TreeNode
 from .module_helper import readlines, dict_merge, get_bundled_bpp_path
 from .module_bpp import bppcfile_write
-from .module_tree import get_attribute_filtered_tree, add_attribute_tau_theta
+from .module_tree import get_attribute_filtered_tree, add_attribute_tau_theta, ensure_taus_valid
 from .module_bpp_readres import MSCNumericParamEstimates, NumericParam
 
 ## INFERENCE OF GDI FROM GENETREES
@@ -110,6 +110,8 @@ def create_simulate_cfile(
 
     # get tree object needed to create simulation 
     sim_tree = get_attribute_filtered_tree(tree, mode, newick=False)
+    # ensure descendants are younger than ancestors
+    sim_tree = ensure_taus_valid(sim_tree)
     leaf_names = set([leaf.name for leaf in sim_tree])
     node_name = node.name
     sister_name = node.get_sisters()[0].name

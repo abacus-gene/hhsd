@@ -274,3 +274,40 @@ def add_attribute_tau_theta(
             node.add_features(theta = None)
 
     return tree
+
+def ensure_taus_valid(
+        tree:   Tree
+        ) ->    Tree:
+    '''
+    go through all of the tau parameters, checking that the age of the ancestor is always larger than the descendant.
+    the mcmc algorithm of bpp sometimes violates this constraint, but simulation fails if this condition is not maintained.
+    '''
+
+    root = tree.get_tree_root()
+
+    ancestors_older_all = [False]
+
+    while not all(ancestors_older_all):
+        ancestors_older = []
+        for node in tree.traverse("postorder"):
+            # skip the root node, as it has no ancestor
+            if node != root:
+                node_age = node.tau
+                    # leaf nodes to not have taus, as they have age 0
+                if str(type(node_age)) == "<class 'NoneType'>":
+                    node_age = 0.0
+                parent = node.up
+                parent_age = float(parent.tau)
+                
+                if node_age < parent_age:
+                    ancestors_older.append(True)
+                else:
+                    print(f"found node {node.name} with age {node_age}, which is not less than {parent.name}'s age of {parent_age}")
+                    ancestors_older.append(False)
+                    parent.tau = parent_age + 0.000001
+                    print(f"therefore the age of {parent.name} was incremented to {parent_age + 0.000001}")
+        ancestors_older_all = ancestors_older
+
+    return tree
+
+        
