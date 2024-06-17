@@ -1,4 +1,4 @@
-# output folder
+# output
 output_directory = res_sim_merge
 
 # input files
@@ -6,13 +6,17 @@ Imapfile = MyImap.txt
 seqfile  = MySeq.txt
 
 # guide tree
-guide_tree = (((A,B),(C,D)),X);
+guide_tree = ((A, (B, C)), D);
 
 # hierarchical algorithm settings
 mode = merge
-gdi_threshold = <0.2
+gdi_threshold = leq 0.2, leq 1.0
+
+# migration patterns
+migration = {A -> B}
+migprior = 0.1 10
 
 # BPP MCMC settings
 threads = 4
-burnin =  500
-nsample = 2000
+burnin =  2000
+nsample = 5000

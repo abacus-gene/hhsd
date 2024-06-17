@@ -1,0 +1,22 @@
+# output
+output_directory = res_sim_split
+
+# input files
+Imapfile = MyImap.txt
+seqfile  = MySeq.txt
+
+# guide tree
+guide_tree = ((A, (B, C)), D);
+
+# hierarchical algorithm settings
+mode = split
+gdi_threshold = geq 0.7, geq 0.5
+
+# migration patterns
+migration = {A -> B}
+migprior = 0.1 10
+
+# BPP MCMC settings
+threads = 4
+burnin =  2000
+nsample = 5000
