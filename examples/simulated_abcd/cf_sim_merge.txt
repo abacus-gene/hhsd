@@ -10,7 +10,7 @@ guide_tree = ((A, (B, C)), D);
 
 # hierarchical algorithm settings
 mode = merge
-gdi_threshold = leq 0.2, leq 1.0
+gdi_threshold = <=0.2, <=1.0
 
 # migration patterns
 migration = {A -> B}

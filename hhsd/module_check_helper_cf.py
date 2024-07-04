@@ -260,28 +260,24 @@ def check_gdi_threshold(
         return None
     else:
         # check correct syntax
-        if not bool(re.fullmatch("(leq{1}|geq{1}|gt{1}|lt{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(leq{1}|geq{1}|gt{1}|lt{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+        if not bool(re.fullmatch("(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
             sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRefer to the manual for further detail on how to specify thresholds.")
 
-        elif mode == "merge" and not bool(re.fullmatch("(leq{1}|lt{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(leq{1}|lt{1})\s*[01]{1}[.\d]+", gdi_thresh)):
-            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. Specify relations as 'leq' (meaning '<=') or  'lt' (meaning '<') instead of '{gdi_thresh}'")
+        elif mode == "merge" and not bool(re.fullmatch("(<={1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. Specify relations as '<=' or '<' {gdi_thresh}'")
         
-        elif mode == "split" and not bool(re.fullmatch("(geq{1}|gt{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(geq{1}|gt{1})\s*[01]{1}[.\d]+", gdi_thresh)):
-            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is a lower bound. Specify relations as 'geq' (meaning '>=') or  'gt' (meaning '>') instead of '{gdi_thresh}'")
+        elif mode == "split" and not bool(re.fullmatch("(>={1}|>{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(>={1}|>{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+            sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is a lower bound. Specify relations as '>=' or '>' instead of '{gdi_thresh}'")
 
         # attempt to parse, and check if values are valid (e.g. within the range [0,1] )
         thresh = str(gdi_thresh).split(",")
         thresh = [t.strip() for t in thresh]
-        thresh_values = [re.sub('(leq{1}|geq{1}|gt{1}|lt{1})\s*', "", t) for t in thresh]
+        thresh_values = [re.sub('(<={1}|>={1}|>{1}|<{1})\s*', "", t) for t in thresh]
         for val in thresh_values:
             if not check_numeric(val, "0.0<=x<=1.0", "f"):
                 sys.exit(f"GdiParameterError: the threshold '{val}' is outside the allowed range of [0,1]")
         
-        # substitute verbal descriptions (lt, gt, leq, geq) with symbols
-        thresh = [re.sub('leq{1}\s*', "<=", t) for t in thresh]
-        thresh = [re.sub('geq{1}\s*', ">=", t) for t in thresh]
-        thresh = [re.sub('lt{1}\s*', "<", t) for t in thresh]
-        thresh = [re.sub('gt{1}\s*', ">", t) for t in thresh]
+        
         
         return thresh
 
