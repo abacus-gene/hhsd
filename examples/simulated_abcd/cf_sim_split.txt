@@ -10,7 +10,7 @@ guide_tree = ((A, (B, C)), D);
 
 # hierarchical algorithm settings
 mode = split
-gdi_threshold = geq 0.7, geq 0.5
+gdi_threshold = >=0.7, >=0.5
 
 # migration patterns
 migration = {A -> B}

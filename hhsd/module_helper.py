@@ -54,31 +54,6 @@ def remove_empty_rows(
 
     return output
 
-# read a text file, and return a filtered version with all text after "*" removed
-def read_filter_comments(
-        input_file
-        ) -> list[str]:
-
-    lines = readlines(input_file)
-    lines = [line.split("#")[0] for line in lines]
-    lines = [line.split("*")[0] for line in lines]
-    lines = remove_empty_rows(lines)
-
-    return lines
-
-# format any parameters that use '{' '}' to spread over multiple lines into a single line
-def read_format_curlybrackets(
-        text_lines: str
-        ) -> str:
-    
-    # split into normal sections, and sections bounded by '{' '}'
-    temp_sections = re.split(r'([{][^\{\}]*[}])', text_lines)
-    temp_sections = [section for section in temp_sections if len(section) > 0]
-    
-    # in the sections bounded by '{' '}', remove any newline characters
-    temp_sections = [re.sub('\n','', item) if (item[0] == "{" and item[-1] == "}") else item for item in temp_sections]
-    
-    return "".join(temp_sections)
 
 # read values from one dictionary into the other if the value in the new dict is not none
 def dict_merge(

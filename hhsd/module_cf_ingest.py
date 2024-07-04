@@ -4,12 +4,13 @@ FUNCTIONS REQUIRED TO INGEST AND CHECK THE PARAMETERS OF THE CONTROL FILE PROVID
 
 import io
 import sys
+import re
 from collections import Counter
 from typing import Optional
 import pandas as pd
 
 from .customtypehints import CfileParam, Cfile
-from .module_helper import read_filter_comments, read_format_curlybrackets, stripall, dict_merge, closest_param_match
+from .module_helper import readlines, stripall, dict_merge, closest_param_match, remove_empty_rows
 from .module_check_helper_cf import check_output_dir, check_msa_file, check_imap_file, check_newick, check_imap_msa_compat, check_imap_tree_compat, check_can_infer_theta, check_mode, check_gdi_threshold, check_migration
 from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_migprior, check_phase
 
@@ -17,22 +18,21 @@ from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprio
 cf_param_dict:CfileParam = {
     # location of output 
     "output_directory"      :None,
+
     # data sources and empirical parameters
     "seqfile"               :None,
     "Imapfile"              :None,
     "guide_tree"            :None,
     "phase"                 :None,
-    #"mrate"                 :None,
+
     # parameters for the hierarchical method
     "mode"                  :None,
-    "gdi_threshold"          :None,
-    #"generation_threshold"  :None,
-    #"decision_criteria"     :None,
+    "gdi_threshold"         :None,
+    
     # parameters passed to BPP instances
     "seed"                  :None,
     "thetaprior"            :None,
     "tauprior"              :None,
-    #"finetune"              :None,
     "sampfreq"              :None,
     "nsample"               :None,                   
     "burnin"                :None,
@@ -40,13 +40,47 @@ cf_param_dict:CfileParam = {
     "nloci"                 :None,
     "locusrate"             :None,
     "cleandata"             :None,
+
     # migration related parameters
     "migprior"              :None,
     "migration"             :None,
+    
+    # unused parameters
+
+    #"generation_threshold"  :None,
+    #"decision_criteria"     :None,
+    #"mrate"                 :None,
+    #"finetune"              :None,
 }
 
 
 ## FUNCTIONS FOR READING AND PROCESSING THE CF INTO PYTHON COMPATIBLE OBJECTS
+
+# strip out comments. Read a text file, and return a filtered version with all text on a line after after "*" and "#" removed
+def read_filter_comments(
+        input_file
+        ) -> list[str]:
+
+    lines = readlines(input_file)
+    lines = [line.split("#")[0] for line in lines]
+    lines = [line.split("*")[0] for line in lines]
+    lines = remove_empty_rows(lines)
+
+    return lines
+
+# format any parameters that use '{' '}' to spread over multiple lines into a single line. currently this is only used for migration
+def read_format_curlybrackets(
+        text_lines: str
+        ) -> str:
+    
+    # split into normal sections, and sections bounded by '{' '}'
+    temp_sections = re.split(r'([{][^\{\}]*[}])', text_lines)
+    temp_sections = [section for section in temp_sections if len(section) > 0]
+    
+    # in the sections bounded by '{' '}', remove any newline characters
+    temp_sections = [re.sub('\n','', item) if (item[0] == "{" and item[-1] == "}") else item for item in temp_sections]
+    
+    return "".join(temp_sections)
 
 def read_cf_to_df(
         cf_name:    Cfile,
@@ -71,15 +105,14 @@ def read_cf_to_df(
     # read into dataframe
     try:
         buf = io.StringIO(lines_text)
-        df = pd.read_csv(buf, sep = "=", header=None)
+        df = pd.read_csv(buf, sep = "^(.*?)=", header=None, engine='python', names=['par','value']) # split occurs at the first "=" every line
         
-        # rename columns, convert every cell to text, and remove trailing and leading whitespaces
-        df.rename(columns={0: "par", 1: "value"}, inplace=True)
+        # remove trailing and leading whitespaces
         for col in df.columns:
             df[col] = df[col].map(stripall)
     except:
         sys.exit("ControlFileError: could not parse control file\nCheck formatting and refer to manual.")
-    
+
     return df
 
 
