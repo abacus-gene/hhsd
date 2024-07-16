@@ -1,0 +1,6 @@
+PEL = pelastes
+OZK = ozark
+MEG = megalotis
+LIT = ouachita
+SOL = solis
+AQU = aquilensis

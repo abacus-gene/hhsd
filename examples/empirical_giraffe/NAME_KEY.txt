@@ -1,0 +1,5 @@
+gir_ang = giraffa + angolensis
+cam_rot_ant = camelopardalis + rothschildi + antiquorum
+per = peralta
+ret = reticulata
+tip_tho = tippelskirchi + thornicrofti
