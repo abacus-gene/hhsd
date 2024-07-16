@@ -1,0 +1,7 @@
+Po = polyzona
+Ab = abnorma
+Mi = micropholis
+An = annulata
+Ge = gentilis
+Tr = triangulum
+El = elapsoides

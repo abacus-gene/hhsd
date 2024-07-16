@@ -1,0 +1,27 @@
+# output
+output_directory = res_sunfish_split
+
+# input files
+Imapfile = Imap_Sunfish.txt
+seqfile = MSA_Sunfish.txt
+phase = 1 # alignment is phased
+
+# guide tree
+guide_tree = (((((PEL, OZK), MEG), LIT), SOL), AQU);
+
+# migration
+migration = {
+	MEG -> PEL,
+	MEG -> SOL,
+	MEG -> OZK
+}
+migprior = 0.1 10
+
+# hierarchical algorithm settings
+mode = split
+gdi_threshold = >=0.7, >=0.5
+
+# BPP MCMC settings
+threads = 12
+burnin = 50000
+nsample = 200000

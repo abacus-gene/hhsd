@@ -1,0 +1,25 @@
+# output
+output_directory = res_giraffe_merge
+
+# input files
+Imapfile = Imap_Giraffe.txt
+seqfile = MSA_Giraffe.txt
+
+# guide tree
+guide_tree = ((gir_ang, tip_tho), ((cam_rot_ant, per), ret));
+
+# migration events and priors
+migration = {
+    ret <-> tip_tho,
+    ret <-> cam_rot_ant,
+}
+migprior = 0.1 10
+
+# hierarchical algorithm settings
+mode = merge
+gdi_threshold = <=0.3, <=1.0
+
+# BPP MCMC settings
+threads = 8
+burnin = 50000
+nsample = 200000

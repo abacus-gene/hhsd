@@ -1,0 +1,29 @@
+# output
+output_directory = res_milksnake_split
+
+# input files
+Imapfile = Imap_Lampropeltis.txt
+seqfile = MSA_Lampropeltis.txt
+
+# guide tree
+guide_tree = (((Mi, (Po, Ab)), (An, (Ge, Tr))), El);
+
+# migration events and priors
+migration = {
+	Po <-> Ab,
+	Po <-> An,
+	An <-> Ge,
+	Ge <-> Tr,
+	Ge <-> El,
+	Tr <-> El,
+}
+migprior = 0.1 10
+
+# hierarchical algorithm settings
+mode = split
+gdi_threshold = >=0.7, >=0.5
+
+# BPP MCMC settings
+threads = 8
+burnin = 50000
+nsample = 200000
