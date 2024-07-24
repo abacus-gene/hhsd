@@ -255,9 +255,11 @@ def check_gdi_threshold(
     # user must specify a gdi threshold   
     if gdi_thresh == None:
         sys.exit("MissingParameterError: 'gdi_threshold' not specified.")
+    
     elif gdi_thresh == "None":
         print(f"Activating gdi estimation mode. All {mode} proposals will be automatically accepted!\n")
-        return None
+        return ["<=1.0, <=1.0"] # this return means that all proposals will be accepted, as gdi values by definition lie between 0 and 1. 
+    
     else:
         # check correct syntax
         if not bool(re.fullmatch("(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
@@ -276,8 +278,6 @@ def check_gdi_threshold(
         for val in thresh_values:
             if not check_numeric(val, "0.0<=x<=1.0", "f"):
                 sys.exit(f"GdiParameterError: the threshold '{val}' is outside the allowed range of [0,1]")
-        
-        
         
         return thresh
 

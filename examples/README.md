@@ -17,7 +17,6 @@ Data published at: https://osf.io/9wv86/
 
 ### Folder contents:
 
-- `NAME_KEY.txt` translation between population codes and full names
 - `Imap_Giraffe.txt` Imap file
 - `MSA_Giraffe` MSA
 - `cf_giraffe_merge.txt` hhsd control file for merge analysis
@@ -40,7 +39,6 @@ Data published at: https://doi.org/10.5061/dryad.7hs34mj
 
 ### Folder contents:
 
-- `NAME_KEY.txt` translation between 2 letter population codes and full names
 - `cf_milksnake_merge.txt` hhsd control file for merge analysis
 - `cf_milksnake_split.txt` hhsd control file for split analysis
 - `Imap_Lampropeltis.txt` Imap file
@@ -63,7 +61,6 @@ Data published at: http://dx.doi.org/10.5061/dryad.dbrv15f05
 
 ### Folder contents:
 
-- `NAME_KEY.txt` translation between 3 letter population codes and full names
 - `Imap_sunfish.txt` Imap file
 - `MSA_sunfish` MSA
 - `cf_sunfish_merge.txt` hhsd control file for merge analysis
@@ -84,7 +81,7 @@ Control file and simulated data for demonstrating the basic behaviour and contro
 
 ---
 
-## Simulated_ABCDX
+## Simulated_XABCD
 
 Control file and simulated data for demonstrating behaviour with paraphyletic species
 
@@ -99,6 +96,7 @@ Data published at: https://doi.org/10.5061/dryad.t66gq81
 
 ### Folder contents:
 
-- `MyImap.txt` Imap file
-- `MySeq` MSA
-- `cf_sim_merge.txt` hhsd control file for merge analysis
+- `starting_imap.text` Imap file
+- `sequences.txt` MSA
+- `simulated_merge_analysis.txt` hhsd control file for merge analysis
+- `simulated_split_analysis.txt` hhsd control file for split analysis

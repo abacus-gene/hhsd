@@ -1,5 +1,6 @@
 
 from copy import deepcopy
+import sys
 from typing import Tuple, Dict, Optional
 import pandas as pd
 import numpy as np
@@ -100,7 +101,9 @@ def read_bpp_mcmc_out(
     """
     read the raw mcmc results from bpp into a dataframe
     """
-
+    lines = readlines(BPP_mcmcfile)
+    if len(lines) < 2:
+        sys.exit("Error: BPP mcmc output file is empty")
     # read the raw MCMC data file
     mcmc_chain = pd.read_csv(BPP_mcmcfile, delimiter='\t')
     # drop first and last columns corresponding to the Gen and lNL values, which are irrelevant
@@ -119,6 +122,8 @@ def get_node_number_map(
     '''
 
     lines = readlines(BPP_outfile)
+    if any(["List of nodes, taus and thetas:" in line for line in lines]) == False: # check if bpp output completed
+        sys.exit("Error: BPP output files are not complete.")
     relevant_index = lines.index("List of nodes, taus and thetas:") # find the line where the node labels are listed
     lines = lines[relevant_index+2:]
 
@@ -354,7 +359,7 @@ class MSCNumericParamEstimates():
 
     def sample_migparam(self, index:int) -> Optional[MigrationRates]:
         """
-        Sample a set of migration rate parameters from the 
+        Sample a set of migration rate parameters from the mcmc chain
         """
         
         df = self.param_traces.copy()

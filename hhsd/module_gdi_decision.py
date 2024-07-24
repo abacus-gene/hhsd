@@ -68,7 +68,7 @@ def node_pair_decision(
     Decide to accept or reject a merge/split proposal
     '''
 
-    # get the thresholds (these come in the form similar to >0.4 or <=1.0)
+    # get the thresholds (these come in the form similar to >0.4 or <=1.0, or are None)
     gdi_thresholds = cf_dict['gdi_threshold']
     threshold_1 = f'x{gdi_thresholds[0]}' 
     threshold_2 = f'x{gdi_thresholds[1]}'

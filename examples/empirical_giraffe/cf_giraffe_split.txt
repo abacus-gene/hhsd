@@ -1,3 +1,10 @@
+# Note that species are renamed as follows:
+# gir_ang = giraffa+angolensis
+# tip_tho = tippelskirchi+thornicrofti
+# cam_rot_ant = camelopardalis+rothschildi+antiquorum
+# per = peralta
+# ret = reticulata
+
 # output
 output_directory = res_giraffe_split
 

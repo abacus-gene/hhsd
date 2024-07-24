@@ -1,3 +1,11 @@
+# Note species are renamed:
+# PEL = pelastes
+# OZK = ozark
+# MEG = megalotis
+# LIT = ouachita
+# SOL = solis
+# AQU = aquilensis
+
 # output
 output_directory = res_sunfish_split
 
