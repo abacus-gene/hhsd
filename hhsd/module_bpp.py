@@ -6,22 +6,11 @@ import subprocess
 import re
 import random
 import sys
-import time
 import pandas as pd
 
 from .customtypehints import CfileParam, BppCfileParam, BppCfile
-from .module_helper import dict_merge, get_bundled_bpp_path, format_time
+from .module_helper import dict_merge, get_bundled_bpp_path
 from .module_msa_imap import auto_prior, auto_nloci
-
-# Custom styler function to format floats and tuples of floats with six decimal places
-def format_float(value):
-    if isinstance(value, float):
-        return format(value, '.6f')
-    elif pd.isna(value):
-        return ' '  # Replace Pandas NaN with empty string
-    else:
-        return value
-
 
 # contains the list of parameters that need to be present in a BPP control file
 default_BPP_cfile_dict:BppCfileParam = {
@@ -116,20 +105,16 @@ def bppcfile_write(
 # run BPP with a given control file, and capture the stdout results
 def run_BPP_A00(
         control_file:   BppCfile,  
-        ) ->            None: # handles the bpp subprocess
+        ) ->            None: # handles the bpp subprocess, which outputs a file
 
     '''
     Handles the starting and stopping of the C program BPP, which is used to infer MSC parameters. 
     '''
 
-    #subprocess.run(["bpp", "--cfile", control_file, "theta-move", "slide"]) # this line will make bpp fully verbose, only intended for debug purposes
-
-    
     bpp_completed = False
-    
     while not bpp_completed:
-        start_time = time.time()
-        progress = ' '
+        # flag activated when numeric scaling is turned on
+        restart = False
 
         # runs BPP in a dedicated subprocess
         process = subprocess.Popen(
@@ -144,43 +129,40 @@ def run_BPP_A00(
     
         # monitors the output of the process
         while True:
-            time.sleep(0.01)
-            realtime_output = process.stdout.readline()
+            output_line = process.stdout.readline()            
             
-            # check that numeric scaling is needed, and activate if it is.
-            if "[ERROR] log-L for locus" in realtime_output:
-                print('restarting BPP with numerical scaling', end = '\r')
-                file1 = open(control_file, "a")  # append mode
-                file1.write("scaling=1")
-                file1.close()
-                break
-            
-            # check if bpp errored with a given error message
-            try:
-                if "[ERROR]" in realtime_output:
-                    sys.exit(f"Error: BPP failed. Check control file independently using the 'bpp' command")
-            except:
-                pass
-        
-            # check if bpp gave a segfault
-            try:
-                if "core dumped" in realtime_output:
-                    sys.exit("Error: BPP failed with segfault. Check control file independently using the 'bpp' command")
-            except:
-                pass
+            # if the output is non-empty
+            if output_line:
+                # check that numeric scaling is needed, and activate if it is. This will restart bpp with the new control file
+                # numeric scaling is not active by default because it slows bpp considerably.
+                if "[ERROR] log-L for locus" in output_line:
+                    print('Restarting BPP with numerical scaling')
+                    file1 = open(control_file, "a")  # append mode
+                    file1.write("scaling=1")
+                    file1.close()
+                    restart = True
+                    break
+
+                # check if bpp errored with a given error message
+                elif "[ERROR]" in output_line:
+                    print("#", output_line)
+                    sys.exit(f"BppError: BPP failed. Check control file independently using the 'bpp' command")
                 
-            # proide feedback about completeness and time elapsed
-            try:
-                percentage = realtime_output.split()[0]
-                if "%" in percentage and "." not in percentage: 
-                    progress = percentage
-            except:
-                pass
-            
-            # print current state of progress
-            print(f"BPP progress: {progress}      {format_time(time.time() - start_time)}                      ", end = "\r")
+                # check if bpp gave a segfault
+                elif "core dumped" in output_line:
+                    print("#", output_line)
+                    sys.exit("BppError: BPP failed with segfault. Check control file independently using the 'bpp' command, and contact BPP developers if issue persists")
+
+                # print the current progress indicator
+                progress = re.findall("-*\d\d%", output_line)
+                if len(progress) == 1:
+                    print(f'BPP progress: {progress[0]}        ', end='\r')
+
+            # exit if process has stopped
+            if (output_line == '') and (process.poll() != None):
+                break
         
-            # exit if process is stopped
-            if realtime_output == '' and process.poll() is not None:
-                print("                                                           ", end = "\r")
-                return None
+        if restart == False:
+            process.wait() # check again that process has stopped
+            print("> Finished BPP run                             ")
+            bpp_completed = True
