@@ -2,11 +2,11 @@
 output_directory = res_sim_merge
 
 # input files
-Imapfile = MyImap.txt
-seqfile  = MySeq.txt
+Imapfile = starting_imap.txt
+seqfile  = sequences.txt
 
 # guide tree
-guide_tree = (((A,B),(C,D)),X);
+guide_tree = (X,((A,B),(C,D)));
 
 # hierarchical algorithm settings
 mode = merge
