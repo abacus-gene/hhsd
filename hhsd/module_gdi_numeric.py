@@ -104,6 +104,8 @@ def get_pg1a_numerical(
     # perform the replicate simulations
     results = []
     for i in range(1000):
+        
+        print(f"inferring gdi for '{node.name}' using analytical formula ({i+1}/1000)...                    ", end = '\r')
 
         tau_dict        = numeric_param.sample_tau(i)
         theta_dict      = numeric_param.sample_theta(i)
@@ -126,5 +128,8 @@ def get_pg1a_numerical(
 
         # perform the calculations
         results.append(pg1a_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA))
+
+    print("                                                                                                  ", end='\r')
+
 
     return NumericParam(results)

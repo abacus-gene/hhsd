@@ -116,8 +116,6 @@ def create_simulate_cfile(
     node_name = node.name
     sister_name = node.get_sisters()[0].name
 
-    print(f"inferring gdi for '{node_name}' and sister '{sister_name}' using gene tree simulation...                                    ", end="\r")
-
     # infer the parameters of the simulation dict from the tree object
     sim_dict = {}
     sim_dict['species&tree'] = f'{len(leaf_names)} {" ".join(leaf_names)}'
@@ -267,6 +265,8 @@ def get_pg1a_from_sim(
 
     results = []
     for i in range(1000):
+        print(f"inferring gdi for '{node.name}' using gene tree simulation ({i+1}/1000)...                        ", end="\r")
+
         # sample the mcmc values
         tau_dict        = numeric_param.sample_tau(i)
         theta_dict      = numeric_param.sample_theta(i)
@@ -284,5 +284,7 @@ def get_pg1a_from_sim(
 
         # get P(G1A)
         results.append(pg1a_from_genetrees(node, tau_AB, genetrees))
+
+    print("                                                                                                       ", end='\r')
 
     return NumericParam(results)
