@@ -162,7 +162,7 @@ def check_sampfreq(
 
     if sampfreq != None:
         if not check_numeric(sampfreq, "0<x<=100", "i"):
-            sys.exit("cMcmcParameterError: 'sampfreq' must be integer value between 0 and 100")
+            sys.exit("McmcParameterError: 'sampfreq' must be integer value between 0 and 100")
 
 # check if the data cleaning parameter is correctly specified
 def check_cleandata(
@@ -193,8 +193,14 @@ def check_tauprior(
         try:
             t = tauprior.split()
             # check if the tau is two floats, and the second is less than 1
-            if not (all(isinstance(float(x), float) for x in t) and len(t) == 2 and 0 < float(t[1]) < 1):
-                sys.exit("PriorError: 'tauprior' incorrectly formatted. refer to BPP manual")
+            if len(t) != 2:
+                sys.exit(f"PriorError: 'tauprior' needs the 'alpha' and 'beta' parameters for the inverse gamma prior")
+            if (not isinstance(float(t[0]), float)) or (not isinstance(float(t[1]), float)):
+                sys.exit(f"PriorError: 'alpha' and 'beta' parameters of 'tauprior' must be numeric")
+            if not (0 < float(t[0])):
+                sys.exit("PriorError: 'alpha' parameter of the inverse gamma for 'tauprior' must be > 1")
+            if not (0 < float(t[1])):
+                sys.exit("PriorError: 'beta' parameter of the inverse gamma for 'tauprior' must be > 1")
         except:
             sys.exit("PriorError: 'tauprior' incorrectly formatted. refer to BPP manual")
 
@@ -206,11 +212,16 @@ def check_thetaprior(
     if thetaprior != None:
         try:
             t = thetaprior.split()
-            # check if the theta is two floats followed by "e", the second is less than 1
-            if not (all(isinstance(float(x), float) for x in t[0:1]) and (len(t) == 3) and (0 < float(t[1]) < 1)):
-                sys.exit("PriorError: 'thetaprior' incorrectly formatted. refer to BPP manual")
-            if not (t[2] == "e" or t[2] == "E"):
-                sys.exit("PriorError: 'thetaprior' incorrectly formatted, as last character must be set to 'e' or 'E' to ensure theta parameters are estimated.")
+            if len(t) < 2:
+                sys.exit(f"PriorError: 'thetaprior' needs at least the 'alpha' and 'beta' parameters for the inverse gamma prior")
+            if (not isinstance(float(t[0]), float)) or (not isinstance(float(t[1]), float)):
+                sys.exit(f"PriorError: 'alpha' and 'beta' parameters of 'thetaprior' must be numeric")
+            if not (0 < float(t[0])):
+                sys.exit("PriorError: 'alpha' parameter of the inverse gamma for 'thetaprior' must be > 1")
+            if not (0 < float(t[1])):
+                sys.exit("PriorError: 'beta' parameter of the inverse gamma for 'thetaprior' must be > 1")
+            if len(t) != 3 or (t[-1] not in ["e", "E"]):
+                sys.exit("PriorError: the last character of 'thetaprior' must be set to 'e' or 'E' to ensure theta parameters are estimated.")
         except:
             sys.exit("PriorError: 'thetaprior' incorrectly formatted. refer to BPP manual")
 
