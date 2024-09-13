@@ -67,12 +67,17 @@ def bppctl_init(
         
         # tau and theta priors
     if bpp_cdict['tauprior'] == None or bpp_cdict['thetaprior'] == None:
-        priors = auto_prior(imapfile=bpp_cdict['Imapfile'], seqfile=bpp_cdict['seqfile'], tree_newick=cf_param['guide_tree'])
+        priors = auto_prior(
+            imapfile=bpp_cdict['Imapfile'], 
+            seqfile=bpp_cdict['seqfile'], 
+            tree_newick=cf_param['guide_tree'],
+            tau_prior=bpp_cdict['tauprior'], 
+            theta_prior=bpp_cdict['thetaprior']
+            )
         if bpp_cdict['tauprior']   == None:
             bpp_cdict['tauprior']   = priors['tauprior']
         if bpp_cdict['thetaprior'] == None:
             bpp_cdict['thetaprior'] = priors['thetaprior']
-
 
     return bpp_cdict
 
