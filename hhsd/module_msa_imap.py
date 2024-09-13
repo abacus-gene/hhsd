@@ -368,6 +368,8 @@ def auto_prior(
         imapfile:       Filename,
         seqfile:        Filename,
         tree_newick:    NewickTree,
+        tau_prior,     
+        theta_prior
         ) ->            CfileParam:
 
     """
@@ -392,28 +394,38 @@ def auto_prior(
     indpop_dict = imapfile_read(imapfile, "indpop")
     populations = list(set(indpop_dict.values()))
 
+    autopriors = {}
+
     ## THETA CALCULATION
     # calculation of locus length weighted average pairwise distances within each population
-    dist_pop = {}
-    for population in populations:
-        dst = distance_within_pop(alignment, indpop_dict, population)
-        if dst != None:
-            dist_pop[population] = dst
+    if theta_prior is None:
+        dist_pop = {}
+        for population in populations:
+            dst = distance_within_pop(alignment, indpop_dict, population)
+            if dst != None:
+                dist_pop[population] = dst
+            
+        # final theta calculation    
+        D = np.average(list(dist_pop.values()))
+        theta_alpha = 3
+        theta_beta = np.round(2*D, decimals = 4)
         
-    # final theta calculation    
-    D = np.average(list(dist_pop.values()))
-    theta_alpha = 3
-    theta_beta = np.round(2*D, decimals = 4)
+        # write to priors dict
+        autopriors['thetaprior'] = f"{theta_alpha} {theta_beta} e"
+    else:
+        autopriors["thetaprior"] = None
     
     ## TAU CALCULATION
-    pop_l, pop_r = get_first_split_populations(tree_newick)
-    M = distance_between_pop(alignment, indpop_dict, pop_l, pop_r)
-    
-    tau_alpha = 3
-    tau_beta = np.round(2*M, decimals = 4)
+    if tau_prior is None:
+        pop_l, pop_r = get_first_split_populations(tree_newick)
+        M = distance_between_pop(alignment, indpop_dict, pop_l, pop_r)
+        
+        tau_alpha = 3
+        tau_beta = np.round(2*M, decimals = 4)
+        
+        # write to priors dict
+        autopriors['tauprior'] = f"{tau_alpha} {tau_beta}"
+    else:
+        autopriors["tauprior"] = None
 
-    # formatting of results to comply with BPP control file standards
-    priors = {"thetaprior": f"{theta_alpha} {theta_beta} e",
-              "tauprior"  : f"{tau_alpha} {tau_beta}",}
-
-    return priors
+    return autopriors
