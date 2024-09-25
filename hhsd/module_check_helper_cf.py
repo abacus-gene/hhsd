@@ -249,16 +249,17 @@ def check_mode(
 
 # check if the gdi threshold is correctly specified
 def check_gdi_threshold(
-        gdi_thresh,
-        mode
-        ):
+        gdi_thresh, # user input, either of the form '<0.7, <=0.5', or 'None'
+        mode        # merge or split, used to check if the direction of comparison matches the analysis type
+        ):          # -> function returns a list of two strings representing the thresholds, e.g. ['<0.7', '<=0.5'] or ['>0.2', '>0.3']
+    
     # user must specify a gdi threshold   
     if gdi_thresh == None:
         sys.exit("MissingParameterError: 'gdi_threshold' not specified.")
     
     elif gdi_thresh == "None":
         print(f"Activating gdi estimation mode. All {mode} proposals will be automatically accepted!\n")
-        return ["<=1.0, <=1.0"] # this return means that all proposals will be accepted, as gdi values by definition lie between 0 and 1. 
+        return ["<=1.0", "<=1.0"] # this return means that all proposals will be accepted, as gdi values by definition lie between 0 and 1. 
     
     else:
         # check correct syntax
