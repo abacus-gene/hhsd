@@ -64,7 +64,7 @@ def check_threads(
         try:
             th = threads.split()
         except:
-            sys.exit("ParameterFormattingError: 'threads' incorrectly formatted. Refer to manual")
+            sys.exit("ParameterFormattingError: 'threads' incorrectly formatted. Refer to section 4.7 of the manual.")
 
         # check if threads is 3 integers, and all values are at least 1 (there is no such thing as 0 threads)
         if all(check_numeric(num, "0<x<1024", "i") for num in th):
@@ -83,7 +83,7 @@ def check_threads(
                 if n_cpu < ((th[1]-1) + (th[2]*th[0])):
                     sys.exit(f"ResourceError: 'threads' implies more cores ({(th[1]-1) + (th[2]*th[0])}) than available on computer ({n_cpu}).\nDecrease thread count and/or offset and/or interval")
         else:
-            sys.exit("ParameterFormattingError: 'threads' should only contain integers. refer to manual")
+            sys.exit("ParameterFormattingError: 'threads' should only contain integers. Refer to section 4.7 of the manual.")
         
 
 # check that the number of threads requested <= the number of loci in the MSA
@@ -237,9 +237,9 @@ def check_migprior(
         try:
             mp = migprior.split()
             if len(mp) != 2 or (not all(check_numeric(value, "0<=x<=50") for value in mp)):
-                sys.exit(f"PriorError: 'migprior' incorrectly formatted as '{migprior}'. please refer to the manual for formatting instructions")
+                sys.exit(f"PriorError: 'migprior' incorrectly formatted as '{migprior}'. Refer to section 4.4 of the manual.")
         except:
-            sys.exit(f"PriorError: 'migprior' incorrectly formatted as '{migprior}'. please refer to the manual for formatting instructions")
+            sys.exit(f"PriorError: 'migprior' incorrectly formatted as '{migprior}'. Refer to section 4.4 of the manual.")
             
 
 # # check if the finetune parameter passed to BPP is correctly specified

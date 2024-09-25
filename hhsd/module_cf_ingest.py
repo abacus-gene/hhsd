@@ -94,13 +94,13 @@ def read_cf_to_df(
         lines = read_filter_comments(cf_name)
         lines_text = "\n".join(lines)
     except:
-        sys.exit("ControlFileError: could not remove comments from control file.\nCheck formatting and refer to manual.")
+        sys.exit("ControlFileError: could not remove comments from control file.\nCheck formatting and refer to section 4 of the manual.")
     
     # format parameters bounded by '{}'
     try:
         lines_text = read_format_curlybrackets(lines_text)
     except:
-        sys.exit("ControlFileError: could not parse control file parameters delimited by '{' and '}'.\nCheck formatting and refer to manual.")
+        sys.exit("ControlFileError: could not parse control file parameters delimited by '{' and '}'.\nCheck formatting and refer to section 4 of the manual.")
 
     # read into dataframe
     try:
@@ -111,7 +111,7 @@ def read_cf_to_df(
         for col in df.columns:
             df[col] = df[col].map(stripall)
     except:
-        sys.exit("ControlFileError: could not parse control file\nCheck formatting and refer to manual.")
+        sys.exit("ControlFileError: could not parse control file\nCheck formatting and refer to section 4 of the manual.")
 
     return df
 
