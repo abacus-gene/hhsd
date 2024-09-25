@@ -302,10 +302,10 @@ def ensure_taus_valid(
                 if node_age < parent_age:
                     ancestors_older.append(True)
                 else:
-                    print(f"found node {node.name} with age {node_age}, which is not less than {parent.name}'s age of {parent_age}")
+                    #print(f"found node {node.name} with age {node_age}, which is not less than {parent.name}'s age of {parent_age}")
                     ancestors_older.append(False)
                     parent.tau = parent_age + 0.000001
-                    print(f"therefore the age of {parent.name} was incremented to {parent_age + 0.000001}")
+                    #print(f"therefore the age of {parent.name} was incremented to {parent_age + 0.000001}")
         ancestors_older_all = ancestors_older
 
     return tree

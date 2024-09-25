@@ -258,12 +258,14 @@ def get_pg1a_from_sim(
     
     '''
     Get P(G1A) of a given TreeNode by simulating trees and counting the proportion of trees with the correct topology.
-    Perform the 1000 replicate simulations needed to establish a distribution over the gdi.
+    Perform the 1000 replicate simulations needed to establish a sample from the distribution over the gdi. Various
+    statistics [mean, confidence intervals, etc] can then be estimated from this sample.
     '''
 
     ancestor_node:NodeName = str(node.up.name)
 
     results = []
+    # run the 1000 replicate gdi estimations
     for i in range(1000):
         print(f"inferring gdi for '{node.name}' using gene tree simulation ({i+1}/1000)...                        ", end="\r")
 
