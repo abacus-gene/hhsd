@@ -76,7 +76,7 @@ def check_imap_file(
         imap = imapfile_read(imapfile, "popind")
         imap = imapfile_read(imapfile, "indpop")
     except:
-        sys.exit(f"InputDataError: 'Imapfile' {imapfile} is not of the correct filetype")
+        sys.exit(f"InputDataError: 'Imapfile' {imapfile} formatted incorrectly. Refer to section 4.3 in the manual.")
 
     final_imapfile = Path(imapfile).resolve(strict=True)
 
@@ -99,7 +99,7 @@ def check_newick(
         try:
             t = Tree(tree)
         except:
-            sys.exit("GuideTreeError: guide tree could not be processed. Check formatting.")
+            sys.exit("GuideTreeError: guide tree could not be processed. Check formatting adheres to Newick standard.")
     
     
     node_names = [node.name for node in t.traverse("postorder") if node.name != ""] # internal node names are not assesed
@@ -123,12 +123,12 @@ def check_newick(
     t = name_internal_nodes(t)
     node_names = [node.name for node in t.traverse("postorder")]
     if len(node_names) > len(set(node_names)):
-        sys.exit("GuideTreeError: guide tree internal node names overlap with leaf node names")
+        sys.exit("GuideTreeError: guide tree internal node names overlap with leaf node names. Refer to section 4.3 of the manual.")
 
     # check if the tree is binary, and return a special error if not
     for node in t.traverse():
         if len(node.get_children()) not in [0, 2]:
-            sys.exit("GuideTreeError: guide tree is not binary")
+            sys.exit("GuideTreeError: guide tree is not binary. Each non-leaf node should only have two descendants.")
 
     return True
 
@@ -245,25 +245,26 @@ def check_mode(
         ):
 
     if mode not in ['merge', 'split']:
-        sys.exit("MissingParameterError: please specify 'mode' as 'merge' or 'split'")
+        sys.exit("MissingParameterError: please specify 'mode' as 'merge' or 'split'. Refer to section 4.5 of the manual.")
 
 # check if the gdi threshold is correctly specified
 def check_gdi_threshold(
-        gdi_thresh,
-        mode
-        ):
+        gdi_thresh, # user input, either of the form '<0.7, <=0.5', or 'None'
+        mode        # merge or split, used to check if the direction of comparison matches the analysis type
+        ):          # -> function returns a list of two strings representing the thresholds, e.g. ['<0.7', '<=0.5'] or ['>0.2', '>0.3']
+    
     # user must specify a gdi threshold   
     if gdi_thresh == None:
-        sys.exit("MissingParameterError: 'gdi_threshold' not specified.")
+        sys.exit("MissingParameterError: 'gdi_threshold' not specified. Refer to section 4.5 of the manual.")
     
     elif gdi_thresh == "None":
         print(f"Activating gdi estimation mode. All {mode} proposals will be automatically accepted!\n")
-        return ["<=1.0, <=1.0"] # this return means that all proposals will be accepted, as gdi values by definition lie between 0 and 1. 
+        return ["<=1.0", "<=1.0"] # this return means that all proposals will be accepted, as gdi values by definition lie between 0 and 1. 
     
     else:
         # check correct syntax
         if not bool(re.fullmatch("(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
-            sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRefer to the manual for further detail on how to specify thresholds.")
+            sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRefer to section 4.5 of the manual for further detail on how to specify thresholds.")
 
         elif mode == "merge" and not bool(re.fullmatch("(<={1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
             sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. Specify relations as '<=' or '<' {gdi_thresh}'")
@@ -299,13 +300,13 @@ def check_migration_newick_compatibility(
     # check if any of the migration events lack a source or destination
     missing_values_df = source_dest_df[source_dest_df.isnull().any(axis=1)]
     if len(missing_values_df["source"]) > 0:
-        sys.exit(f"MigrationParameterError: the following specified migration events lack a source and/or destination:\n{missing_values_df.to_string()}")
+        sys.exit(f"MigrationParameterError: the following migration events lack a source and/or destination:\n{missing_values_df.to_string()}")
 
     # check if all of the values correspond to known populations
     all_known_populations = get_all_populations(tree_newick)
     unknown_names_df = source_dest_df[source_dest_df[source_dest_df.isin(all_known_populations)].isnull().any(axis=1)]
     if len(unknown_names_df["source"]) > 0:
-        sys.exit(f"MigrationParameterError: the following specified migration events have a source and/or destination population that is not found in the guide tree:\n{unknown_names_df.to_string()}")
+        sys.exit(f"MigrationParameterError: the following migration events have a source and/or destination population that is not found in the guide tree:\n{unknown_names_df.to_string()}")
 
     
     # check that no migration events occur between descendants 
@@ -337,13 +338,13 @@ def check_migration(
     # specified migration
     elif migration[0] == "{" and migration[-1] == "}":
         if migprior == None:
-            sys.exit("MigrationParameterError: migration pattern was specified, but 'migprior' not specified, but . Please specify a prior value for migration rates.")
+            sys.exit("MigrationParameterError: migration pattern was specified, but 'migprior' was not. Please specify a prior value for migration rates.")
 
         mig = read_specified_mig_pattern(migration)
         check_migration_newick_compatibility(mig, guide_tree)
 
     else:
-        sys.exit("MigrationParameterError: migration parameter incorrectly specified. Refer to manual.")
+        sys.exit("MigrationParameterError: migration parameter incorrectly formatted. Refer to section 4.4 of the manual.")
 
     return mig
 
