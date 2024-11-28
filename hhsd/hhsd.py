@@ -51,7 +51,9 @@ def hhsd(
             sys.exit("Quitting hhsd")
 
 
-#### ----- MAIN ----- ####
+"""
+MAIN ENTRY POINT FOR RUNNING HHSD FROM THE TERMINAL
+"""
 def run():
     cf_path, cf_override = cmdline_init(argv)
     hhsd(cf_path, cf_override)

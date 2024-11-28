@@ -148,7 +148,7 @@ def extract_param_summaries(
         ) ->                MSCNumericParamSummary:            
 
     '''
-    Extract summary statistics for all parameters from the raw mcmc chain
+    Extract summary statistics (mean, 2.5% HPD, 97.5% HPD) for all parameters from the raw mcmc chain
     '''
 
     # format the pieces into lists
@@ -199,7 +199,7 @@ def meanhpd_tau_theta(
 
     '''
     Get a dataframe of tau and theta values with the mean and hpd intervals. 
-    Print this df, and write it to disk. 
+    Reformat, print this df to the screen, and write it to disk. 
     '''
 
     tau_mean_dict       = numeric_param.query("`type` == 'tau'").set_index('node')['mean'].to_dict()
@@ -228,7 +228,7 @@ def meanhpd_mig(
     
     '''
     Get a dataframe of M values with the mean and hpd intervals. 
-    Print this df, and write it to disk. 
+    Reformat, print this df to the screen, and write it to disk for the user. 
     '''
     
     df = numeric_param.copy()
@@ -265,6 +265,9 @@ class MSCNumericParamDf(pd.DataFrame):
 def evenly_spaced_integers(n, m):
     """
     Used to generate the integer indices at which the mcmc chain will be sampled
+    for example, if nsample = 10000 in the control file, an MCMC chain of length 10000 will be written to disk by bpp.
+    If we want to get say 1000 samples, we take every 10th element of the full chain. 
+    This function returns the indeces of the chosen chain elements
     """
 
     # Generate count evenly spaced numbers from n to m
@@ -280,7 +283,8 @@ def extract_param_traces(
         ) ->                MSCNumericParamDf:            
 
     '''
-    Extract summary statistics for all parameters from the raw mcmc chain
+    Extract "n_subsample" evenly spaced samples from the full MCMC chain for the numeric parameters of each node
+    these samples are later used to calculate distributions over the gdi
     '''
 
     # get the indeces at which the sequence will be downsampled to
@@ -328,13 +332,13 @@ class MSCNumericParamEstimates():
         self.map_dict_long = map_dict_long
         self.map_dict_numeric = map_dict_numeric
 
-        # create the dataframe holding the summary stats
+        # create the dataframe holding the summary stats (mean and HPD intervals)
         self.param_summaries = extract_param_summaries(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
         # print and save summary stats to disk
         meanhpd_tau_theta(self.param_summaries)
         meanhpd_mig(self.param_summaries)
 
-        # extract the traces into numericParam objects
+        # extract the traces (1000 evenly spaced samples from the MCMC chain) into numericParam objects
         self.param_traces = extract_param_traces(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
 
     def sample_tau(self, index:int) -> Dict[NodeName, float]:

@@ -65,7 +65,8 @@ def remap_migrate(
         ) ->            Tuple[NodeName, NodeName]:
 
     '''
-    Remaps the migration event between two populations to the populations currently accepted as species. Remapping must occur when the species delimitation changes.
+    Remaps the migration event between two populations to the populations currently accepted as species. 
+    Remapping must occur when the species delimitation changes.
 
     consider the following scenario, with migration from A to B, and C to B:
 
@@ -84,6 +85,8 @@ def remap_migrate(
        \    /
         \  /
         ABC
+
+    At each iteration, this function needs to be applied to each migrating pair of populations in the guide tree
     '''
     
     source_node = tree.search_nodes(name = source_name)[0]
@@ -105,7 +108,14 @@ def append_migrate_rows(
         ) ->            None: # writes to the bpp control file
     
     '''
-    Append rows to the BPP control file to infer migration parameters, depending on how the migration pattern was specified.
+    Based on the migration patterns stored in hhsd, Append rows to the BPP control file to infer migration parameters, 
+    depending on how the migration pattern was specified. BPP migration syntax is as follows:
+
+    migration = n
+	   from_species_1 to_species_1
+       from_species_2 to_species_2
+       ...
+       from_species_n to_species_n
     '''
 
     # when the migration pattern is specified for certain nodes, get the resulting pattern
@@ -158,10 +168,10 @@ def check_migration_reciprocal(
         ) ->            bool:
 
     '''
-    If two nodes in pair\\ 
+    If two nodes in pair\\
     - do not participate in any migration events, or 
-    - only participate in migration events involving eachother
-    the numerical formula for calculating gdi values 'gdi_numeric' may be used.
+    - only participate in migration events involving eachother (reciprocal migration)
+    the numerical formula for calculating gdi values defined in 'gdi_numeric' may be used.
     '''
 
     # if no migration events occur, then there are no non-reciprocal migration events

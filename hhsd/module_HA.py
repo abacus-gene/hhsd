@@ -126,7 +126,8 @@ def proposal_setup_files(
         ) ->        None: # writes files to disk
     
     '''
-    Write the imap file and bpp control file needed to evaluate a given proposal
+    Write the imap file and bpp control file needed to get the tau, theta (and possibly M) parameters of the 
+    topology and migration events corresponding to a given merge or split proposal
     '''
 
     # set up and write imap needed to evaluate proposal
@@ -154,7 +155,7 @@ def HA_iteration(
         ) ->        Tree:
     
     '''
-    Important function implementing each iteration of the Hierarchical merge/split algorithm
+    Core function implementing each iteration of the Hierarchical merge/split algorithm
     '''
 
     # increment iteration count
@@ -201,19 +202,19 @@ def check_contintue(
 
     next_iteration =  True
 
-    # check if topology has been reduced to root node
+    # check if topology has been reduced to root node (end state in merge mode)
     if   cf_dict['mode'] == 'merge':
         if len(get_attribute_filtered_tree(tree, "species", newick=False)) == 1:
             print("\nAll populations merged into single species. Final delimitation reached")
             next_iteration = False
 
-    # check if topology has been expanded to the guide tree
+    # check if topology has been expanded to the guide tree (end state in split mode)
     elif cf_dict['mode'] == 'split':
         if len(get_attribute_filtered_tree(tree, "population", newick=False)) == len(get_attribute_filtered_tree(tree, "species", newick=False)):
             print("\nAll populations in guide tree are species. Final delimitation reached")
             next_iteration = False
     
-    # check if all propoosed modifications were rejected.
+    # check if all propoosed modifications were rejected (intermediate end state)
     if len(tree.search_nodes(modified=True)) == 0:
             print("\nAll modifications rejected. Final delimitation reached.")
             next_iteration = False

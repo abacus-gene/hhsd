@@ -1,21 +1,6 @@
 '''
 INFER GDI VALUES BY SIMULATING GENETREES UNDER THE MSC+M MODEL
-'''
 
-import re
-import copy
-import subprocess
-import os
-
-from .customtypehints import BppCfile, BppCfileParam, GeneTrees, AlgoMode, MigrationRates, NodeName
-from .module_ete3 import Tree, TreeNode
-from .module_helper import readlines, dict_merge, get_bundled_bpp_path
-from .module_bpp import bppcfile_write
-from .module_tree import get_attribute_filtered_tree, add_attribute_tau_theta, ensure_taus_valid
-from .module_bpp_readres import MSCNumericParamEstimates, NumericParam
-
-## INFERENCE OF GDI FROM GENETREES
-'''
 The functions in this section are responsible for outputing the list of 10^6 gene tree topologies with 
 associated branch lengths. 
 
@@ -31,14 +16,27 @@ Such a model defines the joint distribution of gene tree topolgies and coalescen
 and simulation can be used to sample this distribution. 
 '''
 
+import re
+import copy
+import subprocess
+import os
+
+from .customtypehints import BppCfile, BppCfileParam, GeneTrees, AlgoMode, MigrationRates, NodeName
+from .module_ete3 import Tree, TreeNode
+from .module_helper import readlines, dict_merge, get_bundled_bpp_path
+from .module_bpp import bppcfile_write
+from .module_tree import get_attribute_filtered_tree, add_attribute_tau_theta, ensure_taus_valid
+from .module_bpp_readres import MSCNumericParamEstimates, NumericParam
+
+
 def tree_to_extended_newick(
         tree:   Tree,
         ) ->    str:
 
     '''
     'tree' is an ete3 Tree object which contains the topology, and the tau and theta values as node attributes.
-    bound is used to select whether the numerical parameters facilitate the lower, mean, or upper bound of the gdi value.
-    The output is an extended newick tree that also contains information about the tau and theta values.
+    The output is a newick tree that also contains information about the tau and theta values at each node.
+    This newick tree is used as input to bpp --simulate
     '''
 
     root = tree.get_tree_root()
@@ -67,7 +65,7 @@ def get_migration_events(
     """
     Get the migration events and rates from the migration dataframe to append to the control file.
 
-    The migration events are appended to the control file in the format:
+    The migration events are appended to the hhsd control file in the following format:
     'migration = n
     source destination M
     """    
@@ -110,7 +108,7 @@ def create_simulate_cfile(
 
     # get tree object needed to create simulation 
     sim_tree = get_attribute_filtered_tree(tree, mode, newick=False)
-    # ensure descendants are younger than ancestors
+    # ensure descendants are younger than ancestors, and modify tree if needed
     sim_tree = ensure_taus_valid(sim_tree)
     leaf_names = set([leaf.name for leaf in sim_tree])
     node_name = node.name
@@ -136,8 +134,7 @@ def create_simulate_cfile(
     ctl_dict = dict_merge(copy.deepcopy(default_BPP_simctl_dict), sim_dict)
     bppcfile_write(ctl_dict,"sim_ctl.ctl")
 
-    # append lines corresponding to migration events and rates (simulation is only required if migraiton is present in the model)
-    
+    # append lines corresponding to migration events and rates (simulation is only required if migraiton is present in the model)  
     mig_events = get_migration_events(migration_df)
     with open("sim_ctl.ctl", "a") as myfile: 
         myfile.write(mig_events)
@@ -184,7 +181,7 @@ def genetree_simulation(
     Handle the file system operations, and bpp control file creation to simulate gene trees. Return the gene trees as a list
     '''
 
-    
+    # create temporary directory to store bpp --simulate output
     os.mkdir('genetree_simulate')
     os.chdir('genetree_simulate')
 
