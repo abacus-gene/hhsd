@@ -113,12 +113,22 @@ def format_time(seconds):
     return f'{round(hours)} h {round(minutes)} m {round(seconds)} s'
 
 
-# check if a single numeric parameter is supplied in the correct format and range
+
 def check_numeric(
         value, 
         statement = "-10000000<x<1000000", 
         float_or_int = "f",
         ):
+    """
+    Check if a single numeric parameter is supplied in the correct format and range
+    -value is a string corresponding to the number, e.g. "0.6", "8", or an incorrect input such as "number"
+    -statement can be used to restrict the range of allowed values to some interval. 
+    -float_or_int specifies if the number should be a float or int
+    To be accepted, the input string has to be:
+    1) a valid number (not other text)
+    2) in the desired range (e.g. a probability cannot be less than 0 or greater than 1)
+    3) the correct datatype (e.g. the number of MCMC samples cannot be 3.5)
+    """
     
     # this module uses the literal eval function, which should only be used very very cautiously
     try: 
@@ -168,7 +178,7 @@ def output_directory(
 
 def get_bundled_bpp_path():
     '''
-    get the correct platform-specific path to the bundled bpp executable, depending on the platform of the user
+    get the correct OS-specific path to the bundled bpp executable, depending on the platform of the user
     '''
     
     # Determine the user's operating system

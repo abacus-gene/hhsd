@@ -263,18 +263,23 @@ def check_gdi_threshold(
     
     else:
         # check correct syntax
-        if not bool(re.fullmatch("(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
-            sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRefer to section 4.5 of the manual for further detail on how to specify thresholds.")
+        if not bool(re.fullmatch("(<={1}|>={1}|>{1}|<{1})[01]{1}[.\d]+[,]{1}[\s]*(<={1}|>={1}|>{1}|<{1})[01]{1}[.\d]+", gdi_thresh)):
+            if bool(re.fullmatch("(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|>={1}|>{1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+                sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRemove whitespace between threshold value and direction. For example, change '<= 0.7' to '<=0.7' or change '> 0.2' to '>0.2'")
+            else:
+                sys.exit(f"GdiParameterError: 'gdi_threshold' incorrectly specified as '{gdi_thresh}'. \nRefer to section 4.5 of the manual for further detail on how to specify thresholds.")
 
-        elif mode == "merge" and not bool(re.fullmatch("(<={1}|<{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(<={1}|<{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+        elif mode == "merge" and not bool(re.fullmatch("(<={1}|<{1})[01]{1}[.\d]+[,]{1}[\s]*(<={1}|<{1})[01]{1}[.\d]+", gdi_thresh)):
             sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is an upper bound. Specify relations as '<=' or '<' {gdi_thresh}'")
         
-        elif mode == "split" and not bool(re.fullmatch("(>={1}|>{1})\s*[01]{1}[.\d]+[,]{1}[\s]*(>={1}|>{1})\s*[01]{1}[.\d]+", gdi_thresh)):
+        elif mode == "split" and not bool(re.fullmatch("(>={1}|>{1})[01]{1}[.\d]+[,]{1}[\s]*(>={1}|>{1})[01]{1}[.\d]+", gdi_thresh)):
             sys.exit(f"GdiParameterError: in merge mode, the 'gdi_threshold' is a lower bound. Specify relations as '>=' or '>' instead of '{gdi_thresh}'")
 
-        # attempt to parse, and check if values are valid (e.g. within the range [0,1] )
+        # attempt to parse
         thresh = str(gdi_thresh).split(",")
         thresh = [t.strip() for t in thresh]
+
+        # check if values are within the valid range for gdis (0 to 1)
         thresh_values = [re.sub('(<={1}|>={1}|>{1}|<{1})\s*', "", t) for t in thresh]
         for val in thresh_values:
             if not check_numeric(val, "0.0<=x<=1.0", "f"):
