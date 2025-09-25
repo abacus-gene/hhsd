@@ -301,12 +301,16 @@ def check_migration_newick_compatibility(
     # check that there are no duplicates
     if any(mig_df.duplicated()):
         sys.exit("MigrationParameterError: same migration event specified more than once")
-
+                
     # check if any of the migration events lack a source or destination
     missing_values_df = source_dest_df[source_dest_df.isnull().any(axis=1)]
     if len(missing_values_df["source"]) > 0:
         sys.exit(f"MigrationParameterError: the following migration events lack a source and/or destination:\n{missing_values_df.to_string()}")
 
+    # check that the source and destination nodes are never identical
+    if not (source_dest_df['source'] != source_dest_df['destination']).all():
+        sys.exit("MigrationParameterError: source and destination cannot be identical for a migration event")
+                
     # check if all of the values correspond to known populations
     all_known_populations = get_all_populations(tree_newick)
     unknown_names_df = source_dest_df[source_dest_df[source_dest_df.isin(all_known_populations)].isnull().any(axis=1)]
