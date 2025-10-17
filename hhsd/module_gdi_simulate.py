@@ -67,7 +67,7 @@ def get_migration_events(
 
     The migration events are appended to the hhsd control file in the following format:
     'migration = n
-    source destination M
+    source destination W
     """    
 
     mig_events = f'migration = {len(migration_df["source"])}\n {migration_df.to_string(header = False, index = False)}'

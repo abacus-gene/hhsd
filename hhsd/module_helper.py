@@ -6,7 +6,6 @@ import re
 import copy
 import sys
 import os
-from pkg_resources import resource_filename
 import platform
 from pathlib import Path
 from difflib import SequenceMatcher
@@ -192,10 +191,17 @@ def get_bundled_bpp_path():
 
     if system   == 'Windows':
         exec_path = os.path.join(bpp_folder, 'windows', 'bpp.exe')
+    
     elif system == 'Linux':
         exec_path = os.path.join(bpp_folder, 'linux', 'bpp')
+   
     elif system == 'Darwin':  # macOS
-        exec_path = os.path.join(bpp_folder, 'macos', 'bpp')
+        # Detect architecture: 'arm64' for Apple Silicon, 'x86_64' for Intel
+        arch = platform.machine().lower()
+        if arch == 'arm64':
+            exec_path = os.path.join(bpp_folder, 'macos_arm', 'bpp')
+        else:
+            exec_path = os.path.join(bpp_folder, 'macos_intel', 'bpp')
     
     else:
         sys.exit(f"HHSD does not support the current operating system: {system}")

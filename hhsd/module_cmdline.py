@@ -91,7 +91,7 @@ def cmdline_init(
 
     # load splash text if no arguments are provided
     if len(arguments_dict) == 0 and "--cfile" not in argument_list:
-        sys.exit(f"hhsd version 1.0.0\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
+        sys.exit(f"hhsd version 1.1.0\n{multiprocessing.cpu_count()} cores available\nspecify control file for analysis with --cfile")
 
     # check that the control file is specified
     if "--cfile" not in arguments_dict:

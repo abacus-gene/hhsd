@@ -189,57 +189,64 @@ def check_tauprior(
         tauprior
         ):
 
+    default_error_msg = "PriorError: 'tauprior' expectes the following syntax:\n    tauprior = invgamma alpha beta\n    tauprior = gamma alpha beta"
+
     if tauprior != None:
         try:
             t = tauprior.split()
         except:
-            sys.exit("PriorError: 'tauprior' incorrectly formatted. refer to BPP manual")
+            sys.exit(default_error_msg)
             
-        if len(t) != 2:
-            sys.exit(f"PriorError: 'tauprior' needs the 'alpha' and 'beta' parameters for the inverse gamma prior")
-        if (not isinstance(float(t[0]), float)) or (not isinstance(float(t[1]), float)):
-            sys.exit(f"PriorError: 'alpha' and 'beta' parameters of 'tauprior' must be numeric")
-        if not (0 < float(t[0])):
-            sys.exit("PriorError: 'alpha' parameter of the inverse gamma for 'tauprior' must be > 1")
-        if not (0 < float(t[1])):
-            sys.exit("PriorError: 'beta' parameter of the inverse gamma for 'tauprior' must be > 1")
+        if len(t) <= 2 or len(t) == 3 and t[0] not in ["invgamma", "gamma"] or len(t) > 3:
+            sys.exit(default_error_msg)
+
+        if len(t) == 3 and t[0] == "invgamma":
+            if not (check_numeric(t[1], "1<x<100") and check_numeric(t[2], "0<x<100")):
+                sys.exit("PriorError: 'alpha' parameter of inverse gamma for 'tauprior' must be > 1, and 'beta' must be > 0.")
+        
+        elif len(t) == 3 and t[0] == "gamma":
+            if not (check_numeric(t[1], "0<x<100") and check_numeric(t[2], "0<x<100")):
+                sys.exit("PriorError: 'alpha' and 'beta' parameters of gamma for 'tauprior' must be > 0.")
+
         
 
 # check if the theta prior parameter passed to BPP is correctly specified
 def check_thetaprior(
         thetaprior
         ):
+    
+    default_error_msg = "PriorError: 'thetaprior' expectes the following syntax:\n    thetaprior = invgamma alpha beta\n    thetaprior = gamma alpha beta"
 
     if thetaprior != None:
         try:
-            t = thetaprior.split()
+            th = thetaprior.split()
         except:
-            sys.exit("PriorError: 'thetaprior' incorrectly formatted. refer to BPP manual")
+            sys.exit(default_error_msg)
+            
+        if len(th) <= 2 or len(th) == 3 and th[0] not in ["invgamma", "gamma"] or len(th) > 3:
+            sys.exit(default_error_msg)
+
+        if len(th) == 3 and th[0] == "invgamma":
+            if not (check_numeric(th[1], "2<x<100") and check_numeric(th[2], "0<x<100")):
+                sys.exit("PriorError: 'alpha' parameter of inverse gamma for 'thetaprior' must be > 2, and 'beta' must be > 0.")
         
-        if len(t) < 2:
-            sys.exit(f"PriorError: 'thetaprior' needs at least the 'alpha' and 'beta' parameters for the inverse gamma prior")
-        if (not isinstance(float(t[0]), float)) or (not isinstance(float(t[1]), float)):
-            sys.exit(f"PriorError: 'alpha' and 'beta' parameters of 'thetaprior' must be numeric")
-        if not (0 < float(t[0])):
-            sys.exit("PriorError: 'alpha' parameter of the inverse gamma for 'thetaprior' must be > 1")
-        if not (0 < float(t[1])):
-            sys.exit("PriorError: 'beta' parameter of the inverse gamma for 'thetaprior' must be > 1")
-        if len(t) != 3 or (t[-1] not in ["e", "E"]):
-            sys.exit("PriorError: the last character of 'thetaprior' must be set to 'e' or 'E' to ensure theta parameters are estimated.")
+        elif len(th) == 3 and th[0] == "gamma":
+            if not (check_numeric(th[1], "0<x<100") and check_numeric(th[2], "0<x<100")):
+                sys.exit("PriorError: 'alpha' and 'beta' parameters of gamma for 'thetaprior' must be > 0.")
         
 
 # check the migration rate prior
-def check_migprior(
-        migprior,
+def check_wprior(
+        wprior,
         ):
 
-    if migprior != None:
+    if wprior != None:
         try:
-            mp = migprior.split()
+            mp = wprior.split()
             if len(mp) != 2 or (not all(check_numeric(value, "0<=x<=50") for value in mp)):
-                sys.exit(f"PriorError: 'migprior' incorrectly formatted as '{migprior}'. Refer to section 4.4 of the manual.")
+                sys.exit(f"PriorError: 'wprior' incorrectly formatted as '{wprior}'. Refer to section 4.4 of the manual.")
         except:
-            sys.exit(f"PriorError: 'migprior' incorrectly formatted as '{migprior}'. Refer to section 4.4 of the manual.")
+            sys.exit(f"PriorError: 'wprior' incorrectly formatted as '{wprior}'. Refer to section 4.4 of the manual.")
             
 
 # # check if the finetune parameter passed to BPP is correctly specified

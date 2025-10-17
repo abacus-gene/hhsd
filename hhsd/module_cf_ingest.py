@@ -12,7 +12,7 @@ import pandas as pd
 from .customtypehints import CfileParam, Cfile
 from .module_helper import readlines, stripall, dict_merge, closest_param_match, remove_empty_rows
 from .module_check_helper_cf import check_output_dir, check_msa_file, check_imap_file, check_newick, check_imap_msa_compat, check_imap_tree_compat, check_can_infer_theta, check_mode, check_gdi_threshold, check_migration
-from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_migprior, check_phase
+from .module_check_helper_bpp import check_seed, check_tauprior, check_thetaprior, check_sampfreq, check_nsample, check_burnin, check_locusrate, check_cleandata, check_threads, check_threads_msa_compat, check_nloci, check_nloci_msa_compat, check_threads_nloci_compat, check_wprior, check_phase
 
 # dictionary of CF parameters that are currently supported
 cf_param_dict:CfileParam = {
@@ -42,7 +42,7 @@ cf_param_dict:CfileParam = {
     "cleandata"             :None,
 
     # migration related parameters
-    "migprior"              :None,
+    "wprior"                :None,
     "migration"             :None,
     
     # unused parameters
@@ -234,11 +234,11 @@ def cf_parameter_check(
     check_nloci_msa_compat(cf['nloci'], cf['seqfile'])
     check_threads_nloci_compat(cf['threads'], cf['nloci'])
 
-    check_migprior(cf['migprior'])
+    check_wprior(cf['wprior'])
 
     # Checking parameters related to migration,
-    cf['migration'] = check_migration(cf["migration"], cf['migprior'], cf['guide_tree'])
-    
+    cf['migration'] = check_migration(cf["migration"], cf['wprior'], cf['guide_tree'])
+
 
     return cf
 

@@ -334,20 +334,20 @@ def check_migration_newick_compatibility(
 # check that the migration parameter has a valud value
 def check_migration(
         migration,
-        migprior,
+        wprior,
         guide_tree
         ):
     
     # no migration
     if   migration == None:
-        if migprior != None:
-            sys.exit("MigrationParameterError: 'migprior' specified, but migration pattern was not.\nRemove migprior to analyse without migration, or specify migration patterns.")
+        if wprior != None:
+            sys.exit("MigrationParameterError: 'wprior' specified, but migration pattern was not.\nRemove wprior to analyse without migration, or specify migration patterns.")
         mig = None
     
     # specified migration
     elif migration[0] == "{" and migration[-1] == "}":
-        if migprior == None:
-            sys.exit("MigrationParameterError: migration pattern was specified, but 'migprior' was not. Please specify a prior value for migration rates.")
+        if wprior == None:
+            sys.exit("MigrationParameterError: migration pattern was specified, but 'wprior' was not. Please specify a prior value for migration rates.")
 
         mig = read_specified_mig_pattern(migration)
         check_migration_newick_compatibility(mig, guide_tree)
