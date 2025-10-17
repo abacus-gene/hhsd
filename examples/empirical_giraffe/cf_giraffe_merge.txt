@@ -20,7 +20,7 @@ migration = {
     ret <-> tip_tho,
     ret <-> cam_rot_ant,
 }
-migprior = 0.1 10
+migprior = 10 1
 
 # hierarchical algorithm settings
 mode = merge
