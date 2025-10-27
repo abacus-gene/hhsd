@@ -85,7 +85,8 @@ def bppctl_init(
 
 def bppcfile_write(
         bpp_param:      BppCfileParam, 
-        ctl_file_name:  str
+        ctl_file_name:  str,
+        simulate:       bool = False # whether the control file is for simulating data
         ) ->            None: # writes bpp control file to disk
     
     '''
@@ -94,8 +95,9 @@ def bppcfile_write(
     # remove parameters without values
     bpp_param = {item:bpp_param[item] for item in bpp_param if bpp_param[item] != None}
 
-    # add in internal node names to the newick string
-    bpp_param['newick'] = add_inner_node_names_to_newick(bpp_param['newick'])
+    # If not simulating, add in internal node names to the newick string
+    if simulate == False:
+        bpp_param['newick'] = add_inner_node_names_to_newick(bpp_param['newick'])
 
     # convert to pandas dataframe
     df = pd.DataFrame(list(bpp_param.items()))
