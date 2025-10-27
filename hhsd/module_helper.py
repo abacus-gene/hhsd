@@ -6,7 +6,6 @@ import re
 import copy
 import sys
 import os
-from pkg_resources import resource_filename
 import platform
 from pathlib import Path
 from difflib import SequenceMatcher
