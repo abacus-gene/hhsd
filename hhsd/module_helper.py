@@ -201,7 +201,7 @@ def get_bundled_bpp_path():
         if arch == 'arm64':
             exec_path = os.path.join(bpp_folder, 'macos_arm', 'bpp')
         else:
-            exec_path = os.path.join(bpp_folder, 'macos_intel', 'bpp')
+            sys.exit(f"HHSD does not support MacOS computers with Intel processors. Please use a Linux or Windows machine, or a Mac with Apple Silicon.")
     
     else:
         sys.exit(f"HHSD does not support the current operating system: {system}")
