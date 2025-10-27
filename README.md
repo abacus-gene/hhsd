@@ -49,6 +49,7 @@ hhsd
 This should result in a greeting message similar to the following:
 ```
 hhsd version 1.1.0
+BPP executable at '<path to bpp>' is present and functional.
 12 cores available
 specify control file for analysis with --cfile
 ```
