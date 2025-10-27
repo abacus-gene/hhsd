@@ -55,4 +55,4 @@ specify control file for analysis with --cfile
 ---
 
 ## Detailed instructions
-Details on the operation of the program, including best practices, and a thorough explanation of parameter syntax can be found in [https://github.com/abacus-gene/hhsd/blob/main/manual.pdf](the manual).
+Details on the operation of the program, including best practices, and a thorough explanation of parameter syntax can be found in [the manual](https://github.com/abacus-gene/hhsd/blob/main/manual.pdf).
