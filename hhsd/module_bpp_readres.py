@@ -133,32 +133,52 @@ def read_bpp_mcmc_out(
     return mcmc_chain
 
 
-def get_node_number_map(
+def get_number_to_node_map(
         BPP_outfile:    BppOutfile,                    
-        ) ->            Tuple[dict, dict]:
+        ) ->            Dict[str, NodeName]:
     
     '''
-    Get a dict of the numerical+string names to string names for each node in the tree.\\
-    This is used to map parameter values in the outfile to their specific nodes.
+    Get a dict of the numerical indeces of nodes to string names for each node in the tree.\\
+    This is used to map parameter values in the outfile to their specific nodes.\\
+    For example, the relevant section of the bpp output file may look like:
+
+    ```
+    Node-Index  Node-Type  Node-Label
+    ---------------------------------
+    1           Tip        s2p
+    2           Tip        s3p
+    3           Tip        s12p
+    4           Tip        s7p
+    ...
+    ```
+
+    The map would then contain entries like:
+    '1':'s2p', '2':'s3p', '3':'s12p', 
     '''
 
     lines = readlines(BPP_outfile)
 
+    # Find starting line of node index section
     relevant_index = next((i for i, s in enumerate(lines) if s.startswith("Node-Index")), -1)
     if relevant_index == -1:
         sys.exit("Error: could not find node index section in BPP output file")
 
+    # Find ending line of node index section
     lines = lines[relevant_index+2:]
     end_index = next((i for i, s in enumerate(lines) if 'param' in s), -1)
+    
+    # Extract only the relevant lines
     lines = lines[:end_index-1]
 
-    '''
-    map dict takes the form 1A:A or 9ABCD:ABCD
-    '''
-    map_dict_long = None#{f'{int(line.split()[0])+1}{line.split()[3]}':f'{line.split()[3]}' for line in lines} 
-    map_dict_numeric = None#{f'{int(line.split()[0])+1}':f'{line.split()[3]}' for line in lines} 
+    # Create the mapping dict
+    map_number_to_node = {}
+    for line in lines:
+        parts = line.split()
+        node_index = parts[0]
+        node_label = parts[2]
+        map_number_to_node[node_index] = node_label
 
-    return map_dict_long, map_dict_numeric
+    return map_number_to_node
 
 class MSCNumericParamSummary(pd.DataFrame):
     """
@@ -166,10 +186,36 @@ class MSCNumericParamSummary(pd.DataFrame):
     """
     pass
 
+def column_name_extractor(
+        col_name:           str,
+        map_number_to_node: dict
+        ) ->                Tuple[str, NodeName]:
+    """
+    Extract the parameter type, node index, and node name from a bpp mcmc column name string. \\
+    If there are less than 10 species, the column name is of the form   "paramtype:nodeindex:popname" \\
+    If there are 10 or more species, the column name is of the form     "paramtype:nodeindex"
+
+    This function uses the number to node map to get the popname if it is missing.
+    """
+
+    elements = str(col_name).split(":", maxsplit=2)
+    
+    # Normal behavior when there are less than 10 populations
+    if len(elements) == 3:
+        param_type, node_index, popname = elements
+    
+    # Triggered by bpp when there are 10 or more populations
+    elif len(elements) == 2:
+        param_type, node_index = elements
+        popname = map_number_to_node.get(node_index, None)
+        if popname is None:
+            sys.exit(f"Error: could not find popname for node index {node_index} in map dict")
+
+    return param_type, popname
+
 def extract_param_summaries(
         mcmc_chain:         MCMCResults,
-        map_dict_long:      dict,
-        map_dict_numeric:   dict,
+        map_number_to_node: dict,
         ) ->                MSCNumericParamSummary:            
 
     '''
@@ -184,7 +230,7 @@ def extract_param_summaries(
     param_hpd_975 = []
 
     for col_name, values in mcmc_chain.items():
-        param_type, node_index, popname = str(col_name).split(":", maxsplit=2)
+        param_type, popname = column_name_extractor(col_name, map_number_to_node)
 
         param_types.append(param_type)
         param_nodes.append(popname)
@@ -202,7 +248,7 @@ def extract_param_summaries(
 
 
     # format the lists into the dataframe
-    numeric_param_summary = pd.DataFrame({
+    numeric_param_summary = MSCNumericParamSummary({
         'type':param_types,
         'node':param_nodes,
         'mean': param_means,
@@ -296,8 +342,7 @@ def evenly_spaced_integers(n, m):
 
 def extract_param_traces(
         mcmc_chain:         MCMCResults,
-        map_dict_long:      dict,
-        map_dict_numeric:   dict,
+        map_number_to_node: dict,
         n_subsample:        int = 1000,          
         ) ->                MSCNumericParamDf:            
 
@@ -315,7 +360,7 @@ def extract_param_traces(
     param_vals  = []
 
     for col_name, values in mcmc_chain.items():
-        param_type, node_index, popname = str(col_name).split(":", maxsplit=2)
+        param_type, popname = column_name_extractor(col_name, map_number_to_node)
 
         param_types.append(param_type)
         param_nodes.append(popname)
@@ -325,10 +370,10 @@ def extract_param_traces(
         param_vals.append(values_arr[indices])
 
     # format the lists into the dataframe
-    numeric_param_df = pd.DataFrame({
-        'type':param_types,
-        'node':param_nodes,
-        'val':param_vals
+    numeric_param_df = MSCNumericParamDf({
+        'type'  :param_types,
+        'node'  :param_nodes,
+        'val'   :param_vals
     })
     
     return numeric_param_df
@@ -337,22 +382,21 @@ def extract_param_traces(
 
 class MSCNumericParamEstimates():
     def __init__(self, BPP_outfile: BppOutfile, BPP_mcmcfile: BppMCMCfile):
-        # read in the actual mcmc results
-        self.mcmc_df = read_bpp_mcmc_out(BPP_mcmcfile)
-        
-        # read in some info that helps map between actual node names, and the names used by bpp (this is needed due to bpp shortening overly long species names in the outfile and mcmc)
-        map_dict_long, map_dict_numeric = get_node_number_map(BPP_outfile)
-        self.map_dict_long = map_dict_long
-        self.map_dict_numeric = map_dict_numeric
+        # Read in the actual mcmc results
+        self.mcmc_df : MCMCResults = read_bpp_mcmc_out(BPP_mcmcfile)
 
-        # create the dataframe holding the summary stats (mean and HPD intervals)
-        self.param_summaries = extract_param_summaries(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
-        # print and save summary stats to disk
+        # Read in some info that helps map between actual node names, and the names used by bpp (this is needed due to bpp shortening overly long species names in the outfile and mcmc)
+        self.number_to_node_map = get_number_to_node_map(BPP_outfile)
+
+        # Create the dataframe holding the summary stats (mean and HPD intervals)
+        self.param_summaries = extract_param_summaries(self.mcmc_df, self.number_to_node_map)
+        
+        # Print and save summary stats to disk
         meanhpd_tau_theta(self.param_summaries)
         meanhpd_mig(self.param_summaries)
 
-        # extract the traces (1000 evenly spaced samples from the MCMC chain) into numericParam objects
-        self.param_traces = extract_param_traces(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
+        # Extract the traces (1000 evenly spaced samples from the MCMC chain) into numericParam objects
+        self.param_traces = extract_param_traces(self.mcmc_df, self.number_to_node_map)
 
     def sample_tau(self, index:int) -> Dict[NodeName, float]:
         """

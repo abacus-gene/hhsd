@@ -160,7 +160,7 @@ def HA_iteration(
 
     # increment iteration count
     root = tree.get_tree_root(); root.iteration = (root.iteration + 1)
-    print(f"\n*** Iteration {root.iteration} ***")
+    print(f"\n<<< Iteration {root.iteration} >>>\n")
 
     # create folder for iteration, and move in
     iter_dir_name = f"Iteration_{root.iteration}"
