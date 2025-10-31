@@ -6,6 +6,7 @@
 - Users must have python 3.9+ installed. Check your current version with `python --version`. 
 - Users must **create** and **activate** a dedicated **virtual environment** for the installation of the package. See: https://docs.python.org/3/tutorial/venv.html for detailed instuctions on how this can be accomplished. 
 - Create a dedicated folder (in the directory where you normally install your programs), and move your terminal to that folder.
+- Activate your dedicated virtual environment for hhsd before beginning installation. 
 ### - Linux 
 Installation on linux can be accomplshed via the following set of commands:
 ```
