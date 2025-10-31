@@ -166,7 +166,7 @@ def run_BPP_A00(
                     sys.exit("BppError: BPP failed with segfault. Check control file independently using the 'bpp' command, and contact BPP developers if issue persists")
 
                 # print the current progress indicator
-                progress = re.findall("-*\d\d%", output_line)
+                progress = re.findall("-*\d\d*%", output_line)
                 if len(progress) == 1:
                     print(f'BPP progress: {progress[0]}        ', end='\r')
 
