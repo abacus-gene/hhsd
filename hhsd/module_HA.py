@@ -160,7 +160,7 @@ def HA_iteration(
 
     # increment iteration count
     root = tree.get_tree_root(); root.iteration = (root.iteration + 1)
-    print(f"\n*** Iteration {root.iteration} ***")
+    print(f"\n<<< Iteration {root.iteration} >>>\n")
 
     # create folder for iteration, and move in
     iter_dir_name = f"Iteration_{root.iteration}"
@@ -175,7 +175,7 @@ def HA_iteration(
     
     # run BPP and get the distributions of the estimated numeric parameters
     run_BPP_A00("proposed_ctl.ctl")
-    estimated_param = MSCNumericParamEstimates(BPP_outfile="proposal_bpp_out.txt", BPP_mcmcfile="proposal_bpp_mcmc.txt")
+    estimated_param = MSCNumericParamEstimates(BPP_outfile="hhsd_job.txt", BPP_mcmcfile="hhsd_job.mcmc.txt")
 
     # get gdi via calculations or simulations, and append results to the tree
     gdi_values = get_gdi_values(tree, estimated_param, cf_dict['mode'])

@@ -411,7 +411,7 @@ def auto_prior(
         theta_beta = np.round(2*D, decimals = 4)
         
         # write to priors dict
-        autopriors['thetaprior'] = f"{theta_alpha} {theta_beta} e"
+        autopriors['thetaprior'] = f"invgamma {theta_alpha} {theta_beta}"
     else:
         autopriors["thetaprior"] = None
     
@@ -424,7 +424,7 @@ def auto_prior(
         tau_beta = np.round(2*M, decimals = 4)
         
         # write to priors dict
-        autopriors['tauprior'] = f"{tau_alpha} {tau_beta}"
+        autopriors['tauprior'] = f"invgamma {tau_alpha} {tau_beta}"
     else:
         autopriors["tauprior"] = None
 

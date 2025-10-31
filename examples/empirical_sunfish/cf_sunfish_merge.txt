@@ -23,7 +23,7 @@ migration = {
 	MEG -> SOL,
 	MEG -> OZK
 }
-migprior = 0.1 10
+wprior = 10 1
 
 # hierarchical algorithm settings
 mode = merge

@@ -9,6 +9,7 @@ import os
 import platform
 from pathlib import Path
 from difflib import SequenceMatcher
+import subprocess
 
 ## CORE HELPER FUNCTIONS
 
@@ -191,12 +192,46 @@ def get_bundled_bpp_path():
 
     if system   == 'Windows':
         exec_path = os.path.join(bpp_folder, 'windows', 'bpp.exe')
+    
     elif system == 'Linux':
         exec_path = os.path.join(bpp_folder, 'linux', 'bpp')
+   
     elif system == 'Darwin':  # macOS
-        exec_path = os.path.join(bpp_folder, 'macos', 'bpp')
+        # Detect architecture: 'arm64' for Apple Silicon, 'x86_64' for Intel
+        arch = platform.machine().lower()
+        if arch == 'arm64':
+            exec_path = os.path.join(bpp_folder, 'macos_arm', 'bpp')
+        else:
+            sys.exit(f"HHSD does not support MacOS computers with Intel processors. Please use a Linux or Windows machine, or a Mac with Apple Silicon.")
     
     else:
         sys.exit(f"HHSD does not support the current operating system: {system}")
 
     return exec_path
+
+def check_bpp_executable():
+    '''
+    check that the bundled bpp executable is present and has executable permissions
+    '''
+
+    bpp_path = get_bundled_bpp_path()
+
+    # check if the bpp executable exists
+    if not os.path.isfile(bpp_path):
+        sys.exit(f"BppExecutableError: the bundled bpp executable was not found at expected location: '{bpp_path}'")
+
+    # check if the bpp executable has execute permissions
+    if not os.access(bpp_path, os.X_OK):
+        sys.exit(f"BppExecutableError: the bundled bpp executable at '{bpp_path}' does not have execute permissions. Please adjust the file permissions to allow execution.")
+
+    # try to run the bpp command to check that it works
+    try:
+        result = subprocess.run([bpp_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            sys.exit(f"BppExecutableError: the bundled bpp executable at '{bpp_path}' could not be executed. Please ensure that the file is not corrupted and has the correct permissions.")
+        if result.returncode == 0:
+            return f"BPP executable at '{bpp_path}' is present and functional."
+    except Exception as e:
+        sys.exit(f"BppExecutableError: an error occurred while trying to execute the bundled bpp executable at '{bpp_path}': {e}")
+
+    

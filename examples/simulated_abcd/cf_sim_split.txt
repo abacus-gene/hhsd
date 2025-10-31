@@ -14,7 +14,7 @@ gdi_threshold = >=0.7, >=0.5
 
 # migration patterns
 migration = {A -> B}
-migprior = 0.1 10
+wprior = 10 1
 
 # BPP MCMC settings
 threads = 4

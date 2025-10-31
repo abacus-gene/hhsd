@@ -14,37 +14,58 @@ from .module_helper import readlines
 These functions are responsible for reading the bpp outfile to get the parmeters inferred during the A00 runs. for example:
 
  ...
+  90%  0.61 0.28 0.32 0.33 1.00 0.29 0.29   0.0102 0.0091 0.0073  0.0099 0.0002 0.0001   13600.59302   -97867.97666  0:20
+  95%  0.61 0.28 0.32 0.33 1.00 0.29 0.29   0.0102 0.0091 0.0073  0.0099 0.0002 0.0001   13393.17942   -97867.84522  0:21
+ 100%  0.61 0.28 0.32 0.33 1.00 0.29 0.28   0.0101 0.0091 0.0072  0.0099 0.0002 0.0001   13479.06416   -97866.99213  0:22
 
-  85%  0.72 0.52 0.30 0.29 0.30 0.31   0.0034 0.0097 0.0012  0.0023 0.0007 0.0005  0.0106 0.0208   1498.79727  -2862.44226  0:50
-  90%  0.72 0.52 0.30 0.29 0.30 0.31   0.0033 0.0098 0.0012  0.0022 0.0007 0.0005  0.0103 0.0206   1529.98489  -2862.55024  0:52
-  95%  0.72 0.52 0.30 0.29 0.30 0.31   0.0034 0.0098 0.0012  0.0023 0.0007 0.0005  0.0099 0.0199   1509.46866  -2862.66880  0:53
- 100%  0.72 0.52 0.30 0.29 0.30 0.31   0.0034 0.0098 0.0012  0.0023 0.0007 0.0005  0.0099 0.0198   1499.93147  -2862.68170  0:54
+0:22 spent in MCMC
 
-0:54 spent in MCMC
+Node-Index  Node-Type  Node-Label
+---------------------------------
+1           Tip        D
+2           Tip        A
+3           Tip        B
+4           Tip        C
+5           Root       ABCD
+6           Inner      ABC
+7           Inner      BC
 
-          theta_1SBC	theta_2CBC	theta_3NCA	theta_4SCA	theta_5NBC	theta_6SCANBCNCACBCSBC	theta_7SCANBCNCACBC	theta_8SCANBCNCA	theta_9SCANBC	tau_6SCANBCNCACBCSBC	tau_7SCANBCNCACBC	tau_8SCANBCNCA	tau_9SCANBC	M_SCA->NBC	M_NBC->SCA	lnL
-mean      0.003409  0.009805  0.001222  0.005034  0.002877  0.000996  0.001157  0.001081  0.002238  0.002274  0.000673  0.000457  0.000191  0.009877  0.019789  -2862.681700
-median    0.003246  0.008834  0.001128  0.004350  0.002110  0.000847  0.001068  0.000858  0.001527  0.002205  0.000620  0.000425  0.000180  0.000045  0.000197  -2862.586000
-S.D       0.001167  0.004583  0.000520  0.003003  0.002588  0.000556  0.000573  0.000731  0.002098  0.000507  0.000243  0.000152  0.000118  0.030576  0.041703  6.864305
-min       0.001194  0.002144  0.000291  0.000944  0.000363  0.000219  0.000229  0.000155  0.000311  0.001022  0.000228  0.000126  0.000019  0.000000  0.000000  -2888.362000
-max       0.009767  0.035791  0.004238  0.023384  0.026804  0.006377  0.010431  0.006791  0.018704  0.005070  0.001867  0.001282  0.000813  0.330063  0.555150  -2838.653000
-2.5%      0.001691  0.003914  0.000510  0.001556  0.000672  0.000371  0.000422  0.000320  0.000478  0.001479  0.000338  0.000227  0.000028  0.000000  0.000000  -2876.582000
-97.5%     0.006202  0.022366  0.002484  0.014242  0.010100  0.002477  0.002399  0.003099  0.007938  0.003460  0.001249  0.000833  0.000507  0.093088  0.163909  -2849.673000
-2.5%HPD   0.001497  0.002337  0.000409  0.000944  0.000433  0.000252  0.000337  0.000240  0.000311  0.001362  0.000302  0.000201  0.000021  0.000000  0.000000  -2875.902000
-97.5%HPD  0.005783  0.018911  0.002278  0.010647  0.007678  0.002069  0.002158  0.002529  0.006318  0.003258  0.001176  0.000775  0.000414  0.053133  0.121130  -2849.315000
-ESS*      177.528058  41.805392  123.545643  47.345292  47.317375  490.965280  178.141753  125.411967  8.609130  87.816313  36.115525  37.688442  6.805319  457.352708  30.253631  251.110649
-Eff*      0.035506  0.008361  0.024709  0.009469  0.009463  0.098193  0.035628  0.025082  0.001722  0.017563  0.007223  0.007538  0.001361  0.091471  0.006051  0.050222
+ param     mean     median      S.D       min       max       2.5%     97.5%    2.5%HPD   97.5%HPD     ESS*       Eff*      rho1  
+----------------------------------------------------------------------------------------------------------------------------------
+theta:1  0.010144  0.010126   0.000528  0.008406  0.011987  0.009139  0.011200  0.009109  0.011162  549.408569  0.109882  0.368798
+theta:2  0.009050  0.008542   0.002574  0.004008  0.024486  0.005531  0.015671  0.005084  0.014322  191.511917  0.038302  0.834114
+theta:3  0.007241  0.006815   0.002586  0.002228  0.031983  0.003453  0.013490  0.002846  0.012184  165.774384  0.033155  0.775707
+theta:4  0.008289  0.007739   0.003333  0.002116  0.053735  0.003949  0.015993  0.003391  0.013954  310.056698  0.062011  0.769121
+theta:5  0.008458  0.008445   0.000984  0.005723  0.012038  0.006645  0.010477  0.006549  0.010360   40.956773  0.008191  0.553858
+theta:6  0.009788  0.009790   0.000424  0.008259  0.011289  0.008963  0.010621  0.008973  0.010624  157.649934  0.031530  0.604400
+theta:7  0.013394  0.011047   0.010062  0.001870  0.167585  0.003559  0.036992  0.002154  0.028605  538.488202  0.107698  0.709658
+tau:5    0.009888  0.009876   0.000380  0.008699  0.011214  0.009196  0.010668  0.009135  0.010589   16.131708  0.003226  0.834069
+tau:6    0.000154  0.000151   0.000024  0.000105  0.000256  0.000114  0.000213  0.000108  0.000198   34.004855  0.006801  0.984226
+tau:7    0.000105  0.000107   0.000028  0.000025  0.000198  0.000049  0.000161  0.000047  0.000156   87.619478  0.017524  0.836812
+
+lnL      -97866.992134  -97866.341000  31.874816  -98009.035000  -97757.674000  -97932.002000  -97805.293000  -97927.665000  -97801.759000  270.384452  0.054077  0.637395
+
 List of nodes, taus and thetas:
 Node (+1)       Tau      Theta    Label
-0          0.000000   0.003409    SBC
-1          0.000000   0.009805    CBC
-2          0.000000   0.001222    NCA
-3          0.000000   0.005034    SCA
-4          0.000000   0.002877    NBC
-5          0.002274   0.000996    SCANBCNCACBCSBC
-6          0.000673   0.001157    SCANBCNCACBC
-7          0.000457   0.001081    SCANBCNCA
-8          0.000191   0.002238    SCANBC
+0          0.000000   0.010144       D [ D ]
+1          0.000000   0.009050       A [ A ]
+2          0.000000   0.007241       B [ B ]
+3          0.000000   0.008289       C [ C ]
+4          0.009888   0.008458    ABCD [ D A B C ]
+5          0.000154   0.009788     ABC [ A B C ]
+6          0.000105   0.013394      BC [ B C ]
+
+Summarizing parameter estimates using file hhsd_job.conditional_a1b1.txt ...
+
+ param     mean      S.D       2.5%     97.5%    2.5%HPD   97.5%HPD    Effu      Effy       c    
+-------------------------------------------------------------------------------------------------
+theta:1  0.010144  0.000528  0.009150  0.011218  0.009112  0.011176  0.134351  0.125048  2.240845
+theta:2  0.009081  0.002610  0.005534  0.015626  0.004909  0.014279  0.040358  0.040083  1.204501
+theta:3  0.007261  0.002601  0.003454  0.013452  0.002782  0.012180  0.034681  0.034522  1.152407
+theta:4  0.008281  0.003249  0.003947  0.015712  0.003181  0.013947  0.067897  0.067247  1.165996
+theta:5  0.008456  0.000977  0.006638  0.010438  0.006521  0.010313  0.008174  0.008144  1.816830
+theta:6  0.009789  0.000428  0.008954  0.010637  0.008940  0.010623  0.033336  0.033043  1.363934
+theta:7  0.013423  0.010014  0.003610  0.036821  0.002326  0.029281  0.112212  0.111038  1.104022
 '''
 
 
@@ -112,28 +133,52 @@ def read_bpp_mcmc_out(
     return mcmc_chain
 
 
-def get_node_number_map(
+def get_number_to_node_map(
         BPP_outfile:    BppOutfile,                    
-        ) ->            Tuple[dict, dict]:
+        ) ->            Dict[str, NodeName]:
     
     '''
-    Get a dict of the numerical+string names to string names for each node in the tree.\\
-    This is used to map parameter values in the outfile to their specific nodes.
+    Get a dict of the numerical indeces of nodes to string names for each node in the tree.\\
+    This is used to map parameter values in the outfile to their specific nodes.\\
+    For example, the relevant section of the bpp output file may look like:
+
+    ```
+    Node-Index  Node-Type  Node-Label
+    ---------------------------------
+    1           Tip        s2p
+    2           Tip        s3p
+    3           Tip        s12p
+    4           Tip        s7p
+    ...
+    ```
+
+    The map would then contain entries like:
+    '1':'s2p', '2':'s3p', '3':'s12p', 
     '''
 
     lines = readlines(BPP_outfile)
-    if any(["List of nodes, taus and thetas:" in line for line in lines]) == False: # check if bpp output completed
-        sys.exit("Error: BPP output files are not complete.")
-    relevant_index = lines.index("List of nodes, taus and thetas:") # find the line where the node labels are listed
+
+    # Find starting line of node index section
+    relevant_index = next((i for i, s in enumerate(lines) if s.startswith("Node-Index")), -1)
+    if relevant_index == -1:
+        sys.exit("Error: could not find node index section in BPP output file")
+
+    # Find ending line of node index section
     lines = lines[relevant_index+2:]
+    end_index = next((i for i, s in enumerate(lines) if 'param' in s), -1)
+    
+    # Extract only the relevant lines
+    lines = lines[:end_index-1]
 
-    '''
-    map dict takes the form 1A:A or 9ABCD:ABCD
-    '''
-    map_dict_long = {f'{int(line.split()[0])+1}{line.split()[3]}':f'{line.split()[3]}' for line in lines} 
-    map_dict_numeric = {f'{int(line.split()[0])+1}':f'{line.split()[3]}' for line in lines} 
+    # Create the mapping dict
+    map_number_to_node = {}
+    for line in lines:
+        parts = line.split()
+        node_index = parts[0]
+        node_label = parts[2]
+        map_number_to_node[node_index] = node_label
 
-    return map_dict_long, map_dict_numeric
+    return map_number_to_node
 
 class MSCNumericParamSummary(pd.DataFrame):
     """
@@ -141,10 +186,36 @@ class MSCNumericParamSummary(pd.DataFrame):
     """
     pass
 
+def column_name_extractor(
+        col_name:           str,
+        map_number_to_node: dict
+        ) ->                Tuple[str, NodeName]:
+    """
+    Extract the parameter type, node index, and node name from a bpp mcmc column name string. \\
+    If there are less than 10 species, the column name is of the form   "paramtype:nodeindex:popname" \\
+    If there are 10 or more species, the column name is of the form     "paramtype:nodeindex"
+
+    This function uses the number to node map to get the popname if it is missing.
+    """
+
+    elements = str(col_name).split(":", maxsplit=2)
+    
+    # Normal behavior when there are less than 10 populations
+    if len(elements) == 3:
+        param_type, node_index, popname = elements
+    
+    # Triggered by bpp when there are 10 or more populations
+    elif len(elements) == 2:
+        param_type, node_index = elements
+        popname = map_number_to_node.get(node_index, None)
+        if popname is None:
+            sys.exit(f"Error: could not find popname for node index {node_index} in map dict")
+
+    return param_type, popname
+
 def extract_param_summaries(
         mcmc_chain:         MCMCResults,
-        map_dict_long:      dict,
-        map_dict_numeric:   dict,
+        map_number_to_node: dict,
         ) ->                MSCNumericParamSummary:            
 
     '''
@@ -159,16 +230,10 @@ def extract_param_summaries(
     param_hpd_975 = []
 
     for col_name, values in mcmc_chain.items():
-        full_param_name = str(col_name).split("_", maxsplit=1)
+        param_type, popname = column_name_extractor(col_name, map_number_to_node)
 
-        # get the type of parameter
-        param_type = full_param_name[0]
         param_types.append(param_type)
-
-        # get the node(s) the parameter is inferred for (get statement is used to return unaltered results for M parameters)
-        param_node = map_dict_long.get(full_param_name[1], full_param_name[1])
-        param_node = map_dict_numeric.get(param_node, param_node)
-        param_nodes.append(param_node)
+        param_nodes.append(popname)
         
         # get the actual values from the mcmc chain
         numericpar = NumericParam(np.array(values))
@@ -183,7 +248,7 @@ def extract_param_summaries(
 
 
     # format the lists into the dataframe
-    numeric_param_summary = pd.DataFrame({
+    numeric_param_summary = MSCNumericParamSummary({
         'type':param_types,
         'node':param_nodes,
         'mean': param_means,
@@ -227,12 +292,12 @@ def meanhpd_mig(
         ):
     
     '''
-    Get a dataframe of M values with the mean and hpd intervals. 
+    Get a dataframe of W values with the mean and hpd intervals. 
     Reformat, print this df to the screen, and write it to disk for the user. 
     '''
     
     df = numeric_param.copy()
-    df = df[df['type'] == 'M']
+    df = df[df['type'] == 'W']
     
     # if no migration patterns were inferred, return None
     if len(df) == 0:
@@ -246,14 +311,14 @@ def meanhpd_mig(
         df['source'] = df['node'].apply(lambda x: x.split('->')[0])
         df['destination'] = df['node'].apply(lambda x: x.split('->')[1])
         df = df[['source', 'destination', 'mean', 'hpd_025', 'hpd_975']]
-        df.rename(columns={'mean': 'M', 'hpd_025': '2.5% HPD', 'hpd_975': '97.5% HPD'}, inplace=True)
+        df.rename(columns={'mean': 'W', 'hpd_025': '2.5% HPD', 'hpd_975': '97.5% HPD'}, inplace=True)
 
         # write to disk
-        df.to_csv("estimated_M.csv", index=False)
+        df.to_csv("estimated_W.csv", index=False)
 
         # format for printing, and print to screen
         print_df = deepcopy(df)
-        print("\n> Estimated migration rates:\n")
+        print("\n> Estimated mutation scaled migration rates:\n")
         print(print_df.to_string(index=False, max_colwidth=36, justify="start"))
 
 class MSCNumericParamDf(pd.DataFrame):
@@ -277,8 +342,7 @@ def evenly_spaced_integers(n, m):
 
 def extract_param_traces(
         mcmc_chain:         MCMCResults,
-        map_dict_long:      dict,
-        map_dict_numeric:   dict,
+        map_number_to_node: dict,
         n_subsample:        int = 1000,          
         ) ->                MSCNumericParamDf:            
 
@@ -296,26 +360,20 @@ def extract_param_traces(
     param_vals  = []
 
     for col_name, values in mcmc_chain.items():
-        full_param_name = str(col_name).split("_", maxsplit=1)
+        param_type, popname = column_name_extractor(col_name, map_number_to_node)
 
-        # get the type of parameter
-        param_type = full_param_name[0]
         param_types.append(param_type)
-
-        # get the node(s) the parameter is inferred for (get statement is used to return unaltered results for M parameters)
-        param_node = map_dict_long.get(full_param_name[1], full_param_name[1])
-        param_node = map_dict_numeric.get(param_node, param_node)
-        param_nodes.append(param_node)
+        param_nodes.append(popname)
         
         # get the actual values from the mcmc chain (thinned to n_subsample samples)
         values_arr = np.array(values)
         param_vals.append(values_arr[indices])
 
     # format the lists into the dataframe
-    numeric_param_df = pd.DataFrame({
-        'type':param_types,
-        'node':param_nodes,
-        'val':param_vals
+    numeric_param_df = MSCNumericParamDf({
+        'type'  :param_types,
+        'node'  :param_nodes,
+        'val'   :param_vals
     })
     
     return numeric_param_df
@@ -324,22 +382,21 @@ def extract_param_traces(
 
 class MSCNumericParamEstimates():
     def __init__(self, BPP_outfile: BppOutfile, BPP_mcmcfile: BppMCMCfile):
-        # read in the actual mcmc results
-        self.mcmc_df = read_bpp_mcmc_out(BPP_mcmcfile)
-        
-        # read in some info that helps map between actual node names, and the names used by bpp (this is needed due to bpp shortening overly long species names in the outfile and mcmc)
-        map_dict_long, map_dict_numeric = get_node_number_map(BPP_outfile)
-        self.map_dict_long = map_dict_long
-        self.map_dict_numeric = map_dict_numeric
+        # Read in the actual mcmc results
+        self.mcmc_df : MCMCResults = read_bpp_mcmc_out(BPP_mcmcfile)
 
-        # create the dataframe holding the summary stats (mean and HPD intervals)
-        self.param_summaries = extract_param_summaries(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
-        # print and save summary stats to disk
+        # Read in some info that helps map between actual node names, and the names used by bpp (this is needed due to bpp shortening overly long species names in the outfile and mcmc)
+        self.number_to_node_map = get_number_to_node_map(BPP_outfile)
+
+        # Create the dataframe holding the summary stats (mean and HPD intervals)
+        self.param_summaries = extract_param_summaries(self.mcmc_df, self.number_to_node_map)
+        
+        # Print and save summary stats to disk
         meanhpd_tau_theta(self.param_summaries)
         meanhpd_mig(self.param_summaries)
 
-        # extract the traces (1000 evenly spaced samples from the MCMC chain) into numericParam objects
-        self.param_traces = extract_param_traces(self.mcmc_df, self.map_dict_long, self.map_dict_numeric)
+        # Extract the traces (1000 evenly spaced samples from the MCMC chain) into numericParam objects
+        self.param_traces = extract_param_traces(self.mcmc_df, self.number_to_node_map)
 
     def sample_tau(self, index:int) -> Dict[NodeName, float]:
         """
@@ -367,7 +424,7 @@ class MSCNumericParamEstimates():
         """
         
         df = self.param_traces.copy()
-        df = df[df['type'] == 'M']
+        df = df[df['type'] == 'W']
         
         # if no migration patterns were inferred, return None
         if len(df) == 0:
@@ -380,7 +437,7 @@ class MSCNumericParamEstimates():
             # split 'node' into 'source' and 'destination'
             df['source'] = df['node'].apply(lambda x: x.split('->')[0])
             df['destination'] = df['node'].apply(lambda x: x.split('->')[1])
-            df['M'] = df['val'].apply(lambda x: x[index])
-            df = df[['source', 'destination', 'M']]
+            df['W'] = df['val'].apply(lambda x: x[index])
+            df = df[['source', 'destination', 'W']]
 
             return df

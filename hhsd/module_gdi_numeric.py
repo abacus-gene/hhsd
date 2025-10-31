@@ -15,8 +15,8 @@ def pg1a_numeric_formula(
         theta_A:    float,
         theta_B:    float,
         tau_AB:     float,
-        M_AB:       float,
-        M_BA:       float
+        wAB:        float,
+        wBA:        float
         ) ->        float:
 
     '''
@@ -25,8 +25,8 @@ def pg1a_numeric_formula(
 
     cA = 2/theta_A
     cB = 2/theta_B
-    wAB = (4*M_AB)/theta_B   # often used entries
-    wBA = (4*M_BA)/theta_A
+    #wAB = (4*M_AB)/theta_B   # often used entries
+    #wBA = (4*M_BA)/theta_A
     
 
     # some rate matrix diagonals that are set up to make the rows sum to 0
@@ -117,17 +117,17 @@ def get_pg1a_numerical(
         tau_AB  = tau_dict[ancestor_node]
         
         try: # try accepts are for cases where one or both populations do not have migration to the other
-            Mig_AB = migration_df[migration_df["source"] == main_node]['M'].to_list()[0]
+            w_AB = migration_df[migration_df["source"] == main_node]['W'].to_list()[0]
         except:
-            Mig_AB = 0
+            w_AB = 0
 
         try:
-            Mig_BA = migration_df[migration_df["source"] == sister_node]['M'].to_list()[0]
+            w_BA = migration_df[migration_df["source"] == sister_node]['W'].to_list()[0]
         except:
-            Mig_BA = 0
+            w_BA = 0
 
         # perform the calculations
-        results.append(pg1a_numeric_formula(theta_A, theta_B, tau_AB, Mig_AB, Mig_BA))
+        results.append(pg1a_numeric_formula(theta_A, theta_B, tau_AB, w_AB, w_BA))
 
     print("                                                                                                  ", end='\r')
 

@@ -11,14 +11,14 @@ import pandas as pd
 from .customtypehints import CfileParam, BppCfileParam, BppCfile
 from .module_helper import dict_merge, get_bundled_bpp_path
 from .module_msa_imap import auto_prior, auto_nloci
+from .module_tree import add_inner_node_names_to_newick
 
 # contains the list of parameters that need to be present in a BPP control file
 default_BPP_cfile_dict:BppCfileParam = {
     'seed':                 None,
     'seqfile':              None, 
     'Imapfile':             None, 
-    'outfile':              "proposal_bpp_out.txt", 
-    'mcmcfile':             "proposal_bpp_mcmc.txt",
+    'jobname':              'hhsd_job',
     'speciesdelimitation':  '0',
     'speciestree' :         '0',
     'species&tree':         None, 
@@ -31,13 +31,13 @@ default_BPP_cfile_dict:BppCfileParam = {
     'cleandata':            '0', 
     'thetaprior':           None, 
     'tauprior':             None, 
-    'finetune':             '1: .01 .0001 .005 .0005 .2 .01 .01 .01', 
+    'finetune':             '1', 
     'print':                '1 0 0 0', 
     'burnin':               None, 
     'sampfreq':             '1', 
     'nsample':              None, 
     'threads':              None,
-    'migprior':             None,
+    'wprior':               None,
 }
 
 def bppctl_init(
@@ -81,9 +81,12 @@ def bppctl_init(
 
     return bpp_cdict
 
+
+
 def bppcfile_write(
         bpp_param:      BppCfileParam, 
-        ctl_file_name:  str
+        ctl_file_name:  str,
+        simulate:       bool = False # whether the control file is for simulating data
         ) ->            None: # writes bpp control file to disk
     
     '''
@@ -91,6 +94,10 @@ def bppcfile_write(
     '''
     # remove parameters without values
     bpp_param = {item:bpp_param[item] for item in bpp_param if bpp_param[item] != None}
+
+    # If not simulating, add in internal node names to the newick string
+    if simulate == False:
+        bpp_param['newick'] = add_inner_node_names_to_newick(bpp_param['newick'])
 
     # convert to pandas dataframe
     df = pd.DataFrame(list(bpp_param.items()))
@@ -159,7 +166,7 @@ def run_BPP_A00(
                     sys.exit("BppError: BPP failed with segfault. Check control file independently using the 'bpp' command, and contact BPP developers if issue persists")
 
                 # print the current progress indicator
-                progress = re.findall("-*\d\d%", output_line)
+                progress = re.findall("-*\d\d*%", output_line)
                 if len(progress) == 1:
                     print(f'BPP progress: {progress[0]}        ', end='\r')
 

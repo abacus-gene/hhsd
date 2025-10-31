@@ -3,6 +3,7 @@ FUNCTIONS RELATED TO READING, MODIFYING, AND WRITING TREE DATA STRUCTURES
 '''
 
 import copy
+import re
 from typing import Literal, Union, Tuple, List, Dict
 
 from .customtypehints import NodeName, NewickTree, ImapPopInd, ImapIndPop, AlgoMode
@@ -10,14 +11,15 @@ from .module_ete3 import Tree, TreeNode
 
 
 def tree_to_newick  (
-        tree:           Tree
+        tree:           Tree,
+        format:         int = 9
         ) ->            NewickTree:
     
     '''
     small wrapper function that returns an ete3 tree in a newick formatted string
     '''
 
-    return tree.write(format=9)
+    return tree.write(format=format)
 
 ## FUNCTIONS FOR INITIALIZING THE MAIN TREE OBJECT BASED ON THE DATA PROVIDED BY THE USER
 def name_internal_nodes(
@@ -137,6 +139,18 @@ def get_attribute_filtered_tree(
     elif newick == False:
         return copy_tree
 
+def add_inner_node_names_to_newick(
+        tree_newick:    NewickTree,
+        ) ->            NewickTree: 
+    '''
+    Add inner node names to the newick representation of the tree.
+    '''
+    temp_tree = Tree(newick = tree_newick)
+    temp_tree = name_internal_nodes(temp_tree)
+    tree_newick = temp_tree.write(format=8)
+    tree_newick = re.sub(';', f'{temp_tree.get_tree_root().name};', tree_newick)
+
+    return tree_newick
 
 def get_attribute_filtered_imap(
         tree:           Tree,

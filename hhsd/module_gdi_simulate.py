@@ -67,7 +67,7 @@ def get_migration_events(
 
     The migration events are appended to the hhsd control file in the following format:
     'migration = n
-    source destination M
+    source destination W
     """    
 
     mig_events = f'migration = {len(migration_df["source"])}\n {migration_df.to_string(header = False, index = False)}'
@@ -132,7 +132,7 @@ def create_simulate_cfile(
 
     # write the control dict
     ctl_dict = dict_merge(copy.deepcopy(default_BPP_simctl_dict), sim_dict)
-    bppcfile_write(ctl_dict,"sim_ctl.ctl")
+    bppcfile_write(ctl_dict,"sim_ctl.ctl", simulate=True)
 
     # append lines corresponding to migration events and rates (simulation is only required if migraiton is present in the model)  
     mig_events = get_migration_events(migration_df)
@@ -227,15 +227,15 @@ def pg1a_from_genetrees(
 
 
     # create the regex corresponding to the required topology
-    correct_genetree = f'\({seq_name}[12]\^{node_name}[:][0][.][\d]#,{seq_name}[12]\^{node_name}:[0][.][\d]#\)'
-    correct_genetree = re.sub('#', '{6}', correct_genetree) # this is needed due to no '{''}' characters being allowed within f strings
+    correct_genetree = f'\({node_name}\^{seq_name}[12][:][0][.][\d]#,{node_name}\^{seq_name}[12]:[0][.][\d]#\)'
+    correct_genetree = re.sub('#', '{10}', correct_genetree) # this is needed due to no '{''}' characters being allowed within f strings
     
     # find all occurrences of the correct topology
     g1_genetrees = [re.search(correct_genetree, element) for element in all_genetrees]
     g1_genetrees = [element.group(0) for element in g1_genetrees if element]
 
     # isolate the time at which each correct topology is achieved
-    num_match = (re.search('0.\d{6}', g1_genetrees[0])); num_start = num_match.span()[0]; num_end = num_match.span()[1]
+    num_match = (re.search('0.\d{10}', g1_genetrees[0])); num_start = num_match.span()[0]; num_end = num_match.span()[1]
     times = [float(element[num_start:num_end]) for element in g1_genetrees]
 
     # isolate the ocurrences that are after the split time for the populations
