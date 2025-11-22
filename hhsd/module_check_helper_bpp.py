@@ -205,7 +205,7 @@ def check_tauprior(
                 sys.exit("PriorError: 'alpha' parameter of inverse gamma for 'tauprior' must be > 1, and 'beta' must be > 0.")
         
         elif len(t) == 3 and t[0] == "gamma":
-            if not (check_numeric(t[1], "0<x<100") and check_numeric(t[2], "0<x<100")):
+            if not (check_numeric(t[1], "0<x<10000") and check_numeric(t[2], "0<x<10000")):
                 sys.exit("PriorError: 'alpha' and 'beta' parameters of gamma for 'tauprior' must be > 0.")
 
         
@@ -231,7 +231,7 @@ def check_thetaprior(
                 sys.exit("PriorError: 'alpha' parameter of inverse gamma for 'thetaprior' must be > 2, and 'beta' must be > 0.")
         
         elif len(th) == 3 and th[0] == "gamma":
-            if not (check_numeric(th[1], "0<x<100") and check_numeric(th[2], "0<x<100")):
+            if not (check_numeric(th[1], "0<x<10000") and check_numeric(th[2], "0<x<10000")):
                 sys.exit("PriorError: 'alpha' and 'beta' parameters of gamma for 'thetaprior' must be > 0.")
         
 
